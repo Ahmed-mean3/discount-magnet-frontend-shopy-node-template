@@ -123,20 +123,20 @@ app.post("/myApp/get-discounts", async (req, res) => {
 
     return;
 
-    const apiUrl =
-      "https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/price_rules/1202709266572/discount_codes.json";
+    // const apiUrl =
+    //   "https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/price_rules/1202709266572/discount_codes.json";
 
-    const response = await fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${btoa(`${apiPassword}:${apiKey}`)}`, // Base64 encode the credentials
-      },
-    });
+    // const response = await fetch(apiUrl, {
+    //   method: "GET",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     Authorization: `Basic ${btoa(`${apiPassword}:${apiKey}`)}`, // Base64 encode the credentials
+    //   },
+    // });
 
-    const data = await response.json();
-    console.log("data recieved from api discounts at backend", data);
-    res.status(200).json(data);
+    // const data = await response.json();
+    // console.log("data recieved from api discounts at backend", data);
+    // res.status(200).json(data);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).send({ message: "Failed to fetch discounts data" });
