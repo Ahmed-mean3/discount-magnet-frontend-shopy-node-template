@@ -1,0 +1,34 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "38aaf4139f78d5a424df9647822e4002"
+name = "discount_app_ahmed"
+handle = "discount_app_ahmed"
+application_url = "https://movies-pastor-operating-prev.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "store-for-customer-account-test.myshopify.com"
+include_config_on_deploy = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_discounts,read_price_rules,read_products,write_discounts,write_price_rules,write_products"
+
+[auth]
+redirect_urls = [
+  "https://movies-pastor-operating-prev.trycloudflare.com/auth/callback",
+  "https://movies-pastor-operating-prev.trycloudflare.com/auth/shopify/callback",
+  "https://movies-pastor-operating-prev.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-07"
+
+[app_proxy]
+url = "https://movies-pastor-operating-prev.trycloudflare.com/myApp"
+subpath = "proxy"
+prefix = "apps"
+
+[pos]
+embedded = false

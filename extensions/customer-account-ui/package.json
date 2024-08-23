@@ -1,0 +1,17 @@
+{
+  "name": "customer-account-ui",
+  "private": true,
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@shopify/ui-extensions": "unstable",
+    "@shopify/ui-extensions-react": "unstable",
+    "axios": "^1.7.4",
+    "cors": "^2.8.5",
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "react-reconciler": "0.29.0"
+  }
+}
