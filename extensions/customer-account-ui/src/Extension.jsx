@@ -1,15 +1,28 @@
 import {
   reactExtension,
   Text,
-  Page,
-  View,
-  Badge,
+  BlockStack,
+  InlineStack,
+  Card,
+  Spinner,
+  Image,
+  useApi,
 } from "@shopify/ui-extensions-react/customer-account";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Button } from "@shopify/ui-extensions/checkout";
-import { useQuery } from "react-query";
-
+import {
+  Badge,
+  BlockSpacer,
+  View,
+  List,
+  ListItem,
+  Tag,
+  Button,
+  Link,
+  Modal,
+  TextBlock,
+  Style,
+} from "@shopify/ui-extensions-react/checkout";
 export default reactExtension(
   "customer-account.order-index.block.render",
   () => <Extension />
@@ -17,108 +30,344 @@ export default reactExtension(
 
 function Extension() {
   const [discountCodes, setDiscountCodes] = useState([]);
-
-  // const {
-  //   data,
-  //   refetch: refetchProductCount,
-  //   isLoading: isLoadingCount,
-  // } = useQuery({
-  //   queryKey: ["productCount"],
-  //   queryFn: async () => {
-  //     const response = await fetch("/api/products/count");
-  //     return await response.json();
-  //   },
-  //   refetchOnWindowFocus: false,
-  // });
-  // fetch("https://jsonplaceholder.typicode.com/todos/1")
-  // .then((response) => response.json())
-  // .then((data) => {
-  //   console.log(data);
-  // })
-  // .catch((e) => {
-  //   console.error("Error:", e);
-
-  //   res.status(500).send({ message: "Failed to fetch discounts data" });
-  // });
-  // const handlePopulate = async () => {
-  //   // setPopulating(true);
-  //   const response = await fetch("/api/products", { method: "POST" });
-
-  //   if (response.ok) {
-  //     await refetchProductCount();
-
-  //     shopify.toast.show(
-  //       t("ProductsCard.productsCreatedToast", { count: productsCount })
-  //     );
-  //   } else {
-  //     shopify.toast.show(t("ProductsCard.errorCreatingProductsToast"), {
-  //       isError: true,
-  //     });
-  //   }
-
-  //   // setPopulating(false);
-  // };
-  // const fetchDiscounts = async () => {
-  //   // fetch("https://jsonplaceholder.typicode.com/todos/1")
-  //   //   .then((response) => response.json())
-  //   //   .then((json) => console.log(json));
-  //   // return;
-  //   try {
-  //     const apiKey = "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"; // Your Shopify API key
-  //     const apiPassword = "185e5520a93d7e0433e4ca3555f01b99"; // Your API password (if applicable)
-  //     const apiUrl =
-  //       "https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/price_rules/1202709266572/discount_codes.json";
-
-  //     const response = await fetch(apiUrl, {
-  //       method: "GET",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Basic ${btoa(`${apiPassword}:${apiKey}`)}`, // Base64 encode the credentials
-  //       },
-  //     });
-
-  //     const data = await response.json();
-  //     console.log("data recieved from api discounts at backend", data);
-  //   } catch (error) {
-  //     console.log("client error", error);
-  //   }
-  // };
+  const [loading, setLoading] = useState(false);
+  const { ui } = useApi();
 
   const fetchDiscounts = async () => {
     try {
-      const apiUrl = "http://localhost:4000/get-discounts";
+      setLoading(true);
+      const apiUrl = "https://middleware-discountapp.mean3.ae/get-discounts";
 
-      const response = await axios.post(apiUrl, {
-        price_rules: "1202709266572",
+      const response = await axios.get(apiUrl, {
+        headers: {
+          "api-key": "Do2j^jF",
+          "shop-name": "store-for-customer-account-test",
+          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+          "shopify-api-token": "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",
+          "Content-Type": "application/json",
+        },
       });
 
-      const data = response.data.discounts; // Assuming the discounts are returned under 'discounts' key
-      console.log("data retrieved from middleware server ->>>>>>>", data);
-      setDiscountCodes(data.map((discount) => discount.code)); // Extract the discount codes
+      const discountData = response.data.data;
+
+      // Fetch price rule details for each discount
+      const discountDetails = await Promise.all(
+        discountData.map(async (discount) => {
+          const priceRule = await fetchPriceRule(discount.price_rule_id);
+          return {
+            code: discount.code,
+            priceRuleDetails: priceRule,
+          };
+        })
+      );
+      console.log("->>>>>>>>>>>>>>>>>>>>>>>>", discountDetails);
+      setDiscountCodes(discountDetails);
+      setLoading(false);
     } catch (error) {
-      console.log("Error receiving data from middleware server", error);
+      setLoading(false);
+      console.error("Error fetching discounts", error.response.data);
     }
   };
+
+  const fetchPriceRule = async (price_rule_id) => {
+    try {
+      const apiUrl = `https://middleware-discountapp.mean3.ae/get-price_rule/${price_rule_id}`;
+      const response = await axios.get(apiUrl, {
+        headers: {
+          "api-key": "Do2j^jF",
+          "shop-name": "store-for-customer-account-test",
+          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+          "shopify-api-token": "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",
+          "Content-Type": "application/json",
+        },
+      });
+
+      return response.data.data.price_rules[0];
+    } catch (error) {
+      console.error("Error fetching price rule", error.response.data);
+    }
+  };
+
   useEffect(() => {
     fetchDiscounts();
   }, []);
+
   return (
-    <Page>
-      <Text style={{ fontWeight: "bold", fontsize: "24px" }}>
-        List of Discounts
+    <BlockStack
+      // inlineAlignment="center"
+      background="red"
+      padding={"tight"}
+      gap="600"
+    >
+      <Text emphasis="bold" size="large" as="h1">
+        Store-wide discounts
       </Text>
-      <View style={{ display: "flex", gap: "18px", marginTop: "12px" }}>
-        {discountCodes.length > 0 ? (
-          discountCodes.map((code, index) => (
-            <Badge key={index} status="info">
-              {code}
-            </Badge>
+      {/* <Grid
+        columns={["20%", "fill", "auto"]}
+        rows={[300, "auto"]}
+        spacing="loose"
+      >
+        <View border="base" padding="base">
+          <Text as="h2" variant="headingMd" fontWeight="bold">
+            use{" "}
+          </Text>
+          <Badge tone="subdued" icon="discount" status="success">
+            {discount.code}
+          </Badge>
+          <Text as="h2" variant="headingMd" fontWeight="bold">
+            and avail{" "}
+          </Text>
+          <Text as="p" fontWeight="regular">
+            {discount.priceRuleDetails.value_type === "fixed_amount"
+              ? `$${discount.priceRuleDetails.value} off`
+              : `${discount.priceRuleDetails.value}% off`}
+          </Text>
+          <Text as="h2" variant="headingMd" fontWeight="bold">
+            discount on collection_name
+          </Text>
+        </View>
+        <View border="base" padding="base">
+          fill / 300
+        </View>
+      </Grid> */}
+      {/* <Link
+        overlay={
+          <Modal id="my-modal" padding title="Return policy">
+            <TextBlock>
+              We have a 30-day return policy, which means you have 30 days after
+              receiving your item to request a return.
+            </TextBlock>
+            <TextBlock>
+              To be eligible for a return, your item must be in the same
+              condition that you received it, unworn or unused, with tags, and
+              in its original packaging. You’ll also need the receipt or proof
+              of purchase.
+            </TextBlock>
+            <Button onPress={() => ui.overlay.close("my-modal")}>Close</Button>
+          </Modal>
+        }
+      >
+        Return policy
+      </Link> */}
+
+      <Card roundedAbove="sm" padding="tight">
+        {loading ? (
+          <Spinner accessibilityLabel="Loading Discounts" size="small" />
+        ) : discountCodes.length > 0 ? (
+          discountCodes.map((discount, index) => (
+            <List key={index}>
+              <ListItem>
+                <InlineStack
+                  spacing="extraTight"
+                  gap="400"
+                  wrap={false}
+                  alignment="center"
+                >
+                  <View
+                    border="none"
+                    padding="base"
+                    style={{ overflow: "hidden" }}
+                  >
+                    {" "}
+                    <Text as="h2" variant="headingMd" fontWeight="bold">
+                      use{" "}
+                    </Text>
+                    {/* <Tag className="badge" icon="discount">
+                      {" "}
+                      {discount.code}
+                    </Tag> */}
+                    <Badge
+                      style={{
+                        whiteSpace: "normal", // Allow text to wrap
+                        overflow: "visible", // Ensure overflow text is visible
+                        textOverflow: "clip", // Clip overflow text (default behavior)
+                        display: "block", // Ensure block display for wrapping
+                        maxWidth: "100%", // Ensure the badge can shrink if needed
+                      }}
+                      icon="discount"
+                      status="success"
+                    >
+                      {discount.code}
+                    </Badge>
+                    {discount.priceRuleDetails.entitled_collection_ids
+                      .length === 0 &&
+                    discount.priceRuleDetails.entitled_product_ids.length ===
+                      0 &&
+                    discount.priceRuleDetails.value_type === "fixed_amount" ? (
+                      <Text
+                        style={{
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        as="h2"
+                        variant="headingMd"
+                        fontWeight="bold"
+                      >
+                        {" "}
+                        and avail -$
+                        {Math.abs(
+                          Math.round(
+                            parseFloat(discount.priceRuleDetails.value)
+                          )
+                        )}{" "}
+                        off an order
+                      </Text>
+                    ) : discount.priceRuleDetails.target_type ===
+                        "shipping_line" &&
+                      discount?.priceRuleDetails?.prerequisite_subtotal_range &&
+                      !discount?.priceRuleDetails
+                        ?.prerequisite_shipping_price_range
+                        ?.greater_than_or_equal_to ? (
+                      <Text
+                        // as="h6"
+                        // fontWeight="regular"
+                        style={{
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        // variant="headingMd"
+                      >
+                        {" "}
+                        and avail Free Shipping over order of $
+                        {Math.round(
+                          parseFloat(
+                            discount?.priceRuleDetails
+                              ?.prerequisite_subtotal_range
+                              ?.greater_than_or_equal_to
+                          )
+                        )}
+                      </Text>
+                    ) : discount.priceRuleDetails
+                        .prerequisite_to_entitlement_quantity_ratio
+                        .prerequisite_quantity > 0 &&
+                      discount.priceRuleDetails
+                        .prerequisite_to_entitlement_quantity_ratio
+                        .entitled_quantity > 0 ? (
+                      <Text
+                        style={{
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        as="h2"
+                        variant="headingMd"
+                        fontWeight="bold"
+                      >
+                        {" "}
+                        and get Buy{" "}
+                        {
+                          discount.priceRuleDetails
+                            .prerequisite_to_entitlement_quantity_ratio
+                            .prerequisite_quantity
+                        }{" "}
+                        Get{" "}
+                        {
+                          discount.priceRuleDetails
+                            .prerequisite_to_entitlement_quantity_ratio
+                            .entitled_quantity
+                        }{" "}
+                        free offer{" "}
+                      </Text>
+                    ) : (
+                      <>
+                        <Text
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          as="h2"
+                          variant="headingMd"
+                          fontWeight="bold"
+                        >
+                          {" "}
+                          and avail{" "}
+                        </Text>
+                        <Text
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          as="p"
+                          fontWeight="regular"
+                        >
+                          {Math.round(
+                            parseFloat(discount.priceRuleDetails.value)
+                          )}
+                          {discount.priceRuleDetails.value_type !==
+                            "fixed_amount" && "%"}{" "}
+                          off
+                        </Text>
+                        <Text
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          as="h2"
+                          variant="headingMd"
+                          fontWeight="bold"
+                        >
+                          {" "}
+                          {discount.priceRuleDetails.prerequisite_product_ids ||
+                          discount.priceRuleDetails.entitled_product_ids
+                            .length > 0
+                            ? "Specific Product"
+                            : discount.priceRuleDetails
+                                .prerequisite_collection_ids.length > 0
+                            ? "Specific Collection"
+                            : "Discount format or type needs to adjust????"}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                </InlineStack>
+              </ListItem>
+            </List>
           ))
         ) : (
           <Text>No discounts available</Text>
         )}
-      </View>
-      {/* <Button onPress={() => console.log("abc")}>click me......</Button> */}
-    </Page>
+      </Card>
+    </BlockStack>
   );
 }
+<style jsx>{`
+  .badge {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 600px) {
+    .badge {
+      font-size: 0.8rem;
+    }
+
+    InlineStack {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    Text {
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (min-width: 601px) and (max-width: 900px) {
+    .badge {
+      font-size: 1rem;
+    }
+
+    InlineStack {
+      flex-direction: row;
+    }
+
+    Text {
+      font-size: 1.1rem;
+    }
+  }
+`}</style>;

@@ -19,17 +19,6 @@ const STATIC_PATH =
     : `${process.cwd()}/frontend/`;
 
 const app = express();
-
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  next();
-});
-
 app.use("/myApp/*", authentication);
 
 async function authentication(req, res, next) {
@@ -47,14 +36,14 @@ async function authentication(req, res, next) {
   }
 }
 
-// app.use(
-//   cors({
-//     origin: "*",
-//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 // app.use(
 //   cors({
 //     origin: ["https://store-for-customer-account-test.myshopify.com"],
@@ -118,25 +107,34 @@ app.post("/myApp/get-discounts", async (req, res) => {
   try {
     let discountValues = req.body;
     console.log("data recieved from client side", discountValues);
+    fetch("https://jsonplaceholder.typicode.com/todos/1")
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        res.status(200).json(data);
+      })
+      .catch((e) => {
+        console.error("Error:", e);
 
-    res.status(200).json(discountValues);
-
+        res.status(500).send({ message: "Failed to fetch discounts data" });
+      });
     return;
+    const apiKey = "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"; // Your Shopify API key
+    const apiPassword = "185e5520a93d7e0433e4ca3555f01b99"; // Your API password (if applicable)
+    const apiUrl =
+      "https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/price_rules/1202709266572/discount_codes.json";
 
-    // const apiUrl =
-    //   "https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/price_rules/1202709266572/discount_codes.json";
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${btoa(`${apiPassword}:${apiKey}`)}`, // Base64 encode the credentials
+      },
+    });
 
-    // const response = await fetch(apiUrl, {
-    //   method: "GET",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     Authorization: `Basic ${btoa(`${apiPassword}:${apiKey}`)}`, // Base64 encode the credentials
-    //   },
-    // });
-
-    // const data = await response.json();
-    // console.log("data recieved from api discounts at backend", data);
-    // res.status(200).json(data);
+    const data = await response.json();
+    console.log("data recieved from api discounts at backend", data);
+    res.status(200).json(data);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).send({ message: "Failed to fetch discounts data" });
