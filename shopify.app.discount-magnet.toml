@@ -3,7 +3,7 @@
 client_id = "5a93a634bcf240ddcec669fc42fd8ad0"
 name = "discount-magnet"
 handle = "discount-magnet"
-application_url = "https://ethical-painful-settle-tongue.trycloudflare.com"
+application_url = "https://demo-vault-week-brutal.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_discounts,read_price_rules,read_products,write_discounts,write_pr
 
 [auth]
 redirect_urls = [
-  "https://ethical-painful-settle-tongue.trycloudflare.com/auth/callback",
-  "https://ethical-painful-settle-tongue.trycloudflare.com/auth/shopify/callback",
-  "https://ethical-painful-settle-tongue.trycloudflare.com/api/auth/callback"
+  "https://demo-vault-week-brutal.trycloudflare.com/auth/callback",
+  "https://demo-vault-week-brutal.trycloudflare.com/auth/shopify/callback",
+  "https://demo-vault-week-brutal.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

@@ -65,7 +65,7 @@ function Extension() {
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      console.error("Error fetching discounts", error.response.data);
+      console.error("Error fetching discounts", error);
     }
   };
 

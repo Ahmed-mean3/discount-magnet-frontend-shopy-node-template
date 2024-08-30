@@ -255,7 +255,7 @@ export function ProductsCard() {
             value_type: valueType,
             value,
             customer_selection: customerSelection,
-            entitled_product_ids: [9184246858001],
+            entitled_product_ids: [7933380296844],
             starts_at: startsAt,
             end_at: endAt,
           },
