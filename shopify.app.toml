@@ -3,7 +3,7 @@
 client_id = "38aaf4139f78d5a424df9647822e4002"
 name = "discount_app_ahmed"
 handle = "discount_app_ahmed"
-application_url = "https://initial-payable-easily-pathology.trycloudflare.com"
+application_url = "https://bored-eating-saves-servers.trycloudflare.com"
 embedded = true
 
 [build]
@@ -16,16 +16,16 @@ scopes = "read_discounts,read_price_rules,read_products,write_discounts,write_pr
 
 [auth]
 redirect_urls = [
-  "https://initial-payable-easily-pathology.trycloudflare.com/auth/callback",
-  "https://initial-payable-easily-pathology.trycloudflare.com/auth/shopify/callback",
-  "https://initial-payable-easily-pathology.trycloudflare.com/api/auth/callback"
+  "https://bored-eating-saves-servers.trycloudflare.com/auth/callback",
+  "https://bored-eating-saves-servers.trycloudflare.com/auth/shopify/callback",
+  "https://bored-eating-saves-servers.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-07"
 
 [app_proxy]
-url = "https://initial-payable-easily-pathology.trycloudflare.com/myApp"
+url = "https://bored-eating-saves-servers.trycloudflare.com/myApp"
 subpath = "proxy"
 prefix = "apps"
 

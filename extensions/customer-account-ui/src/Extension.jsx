@@ -36,7 +36,7 @@ function Extension() {
   const fetchDiscounts = async () => {
     try {
       setLoading(true);
-      const apiUrl = "https://middleware-discountapp.mean3.ae/get-discounts";
+      const apiUrl = "http://localhost:4000/get-discounts";
 
       const response = await axios.get(apiUrl, {
         headers: {

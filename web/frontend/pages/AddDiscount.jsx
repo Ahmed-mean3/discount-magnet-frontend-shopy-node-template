@@ -615,7 +615,7 @@ export default function AddDiscount() {
         checked,
         "selected end date if true if is->"
       );
-      return;
+      // return;
       // return;
       //   const newDiscount = {
       //     "price_rule": {
@@ -715,7 +715,7 @@ export default function AddDiscount() {
 
       console.log("error", error);
     } finally {
-      return;
+      // return ;
 
       if (!isValid) {
         setModalLoader(false);
@@ -1317,31 +1317,17 @@ export default function AddDiscount() {
             style={{
               display: "flex",
               justifyContent: "flex-start",
-              justifyItems: "center",
               gap: "10px",
-              // marginBottom: -20, // Adjust spacing as needed
+              width: "100%",
             }}
           >
-            {/* <DatePickerMain
-              label="Select a start date"
-              initialDate={selectedDate}
-              onDateChange={handleDateChange}
-            /> */}
-
-            <FormLayout condensed>
-              {/* <DatePickerMain
-                label="Select a start date"
-                initialDate={selectedDate}
-                onDateChange={(val) => handleDateChange(val, false, false)}
-              /> */}
+            <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
               <PolarisTextField
                 label="Select a start date"
                 type="date"
                 value={selectedDate}
                 onChange={(value) => {
-                  console.log("value", value);
                   setSelectedDate(value);
-                  // setStartsAtTime(`${value}:00`);
                 }}
               />
               {codeStartDateError && (
@@ -1350,6 +1336,7 @@ export default function AddDiscount() {
                 </Text>
               )}
             </FormLayout>
+
             <PolarisTextField
               label="Start time"
               type="time"
@@ -1357,7 +1344,7 @@ export default function AddDiscount() {
               onChange={(value) => {
                 setStartsAtTime(`${value}:00`);
               }}
-              // error={codeStartDateError ? "Start Date is required." : ""}
+              style={{ flexGrow: 1, width: "100%" }} // Increases width
             />
           </div>
 
