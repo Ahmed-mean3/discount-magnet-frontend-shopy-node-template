@@ -229,14 +229,17 @@ export function ProductsCard() {
   };
   const fetchDiscounts = async () => {
     try {
-      const response = await axios.get("http://localhost:4000/get-discounts", {
-        headers: {
-          "api-key": "Do2j^jF",
-          "shop-name": "store-for-customer-account-test",
-          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-          "shopify-api-token": "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",
-        },
-      });
+      const response = await axios.get(
+        "https://middleware-discountapp.mean3.ae/get-discounts",
+        {
+          headers: {
+            "api-key": "Do2j^jF",
+            "shop-name": "store-for-customer-account-test",
+            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+            "shopify-api-token": "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",
+          },
+        }
+      );
 
       console.log("data success", response);
 
