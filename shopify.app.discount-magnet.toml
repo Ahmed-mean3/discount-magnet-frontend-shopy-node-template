@@ -3,13 +3,12 @@
 client_id = "5a93a634bcf240ddcec669fc42fd8ad0"
 name = "discount-magnet"
 handle = "discount-magnet"
-application_url = "https://demo-vault-week-brutal.trycloudflare.com"
+application_url = "https://intensive-culture-thumbzilla-cisco.trycloudflare.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
 dev_store_url = "store-for-customer-account-test.myshopify.com"
-include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -17,9 +16,9 @@ scopes = "read_discounts,read_price_rules,read_products,write_discounts,write_pr
 
 [auth]
 redirect_urls = [
-  "https://demo-vault-week-brutal.trycloudflare.com/auth/callback",
-  "https://demo-vault-week-brutal.trycloudflare.com/auth/shopify/callback",
-  "https://demo-vault-week-brutal.trycloudflare.com/api/auth/callback"
+  "https://intensive-culture-thumbzilla-cisco.trycloudflare.com/auth/callback",
+  "https://intensive-culture-thumbzilla-cisco.trycloudflare.com/auth/shopify/callback",
+  "https://intensive-culture-thumbzilla-cisco.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

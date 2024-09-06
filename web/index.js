@@ -88,6 +88,39 @@ app.get("/api/products/count", async (_req, res) => {
   });
   res.status(200).send(countData);
 });
+//get all discounts
+app.get("/api/priceRules/all", async (_req, res) => {
+  const countData = await shopify.api.rest.PriceRule.all({
+    session: res.locals.shopify.session,
+  });
+  // console.log("data.............", countData.data);
+
+  const priceRuleIds = countData.data.reduce((acc, rule) => {
+    if (rule.title.startsWith("CC_")) {
+      acc.push(rule.id);
+    }
+    return acc;
+  }, []);
+  const allDiscountPromises = priceRuleIds.map(
+    async (id) =>
+      await shopify.api.rest.DiscountCode.all({
+        session: res.locals.shopify.session,
+        price_rule_id: id,
+      })
+  );
+  console.log("rules....", allDiscountPromises);
+
+  // Wait for all requests to finish
+  const allDiscountResponses = await Promise.all(allDiscountPromises);
+  res.status(200).send(countData);
+});
+
+app.get("/api/products/all", async (_req, res) => {
+  const productsData = await shopify.api.rest.Product.all({
+    session: res.locals.shopify.session,
+  });
+  res.status(200).send(productsData);
+});
 
 app.post("/api/products", async (_req, res) => {
   let status = 200;
@@ -140,6 +173,7 @@ app.post("/myApp/get-discounts", async (req, res) => {
     res.status(500).send({ message: "Failed to fetch discounts data" });
   }
 });
+
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
 

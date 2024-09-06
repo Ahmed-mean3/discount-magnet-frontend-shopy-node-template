@@ -36,7 +36,7 @@ function Extension() {
   const fetchDiscounts = async () => {
     try {
       setLoading(true);
-      const apiUrl = "https://middleware-discountapp.mean3.ae/get-discounts";
+      const apiUrl = "http://localhost:4000/get-discounts";
 
       const response = await axios.get(apiUrl, {
         headers: {
@@ -50,18 +50,18 @@ function Extension() {
 
       const discountData = response.data.data;
 
-      // Fetch price rule details for each discount
-      const discountDetails = await Promise.all(
-        discountData.map(async (discount) => {
-          const priceRule = await fetchPriceRule(discount.price_rule_id);
-          return {
-            code: discount.code,
-            priceRuleDetails: priceRule,
-          };
-        })
-      );
-      console.log("->>>>>>>>>>>>>>>>>>>>>>>>", discountDetails);
-      setDiscountCodes(discountDetails);
+      // // Fetch price rule details for each discount
+      // const discountDetails = await Promise.all(
+      //   discountData.map(async (discount) => {
+      //     const priceRule = await fetchPriceRule(discount.price_rule_id);
+      //     return {
+      //       code: discount.code,
+      //       priceRuleDetails: priceRule,
+      //     };
+      //   })
+      // );
+      console.log("->>>>>>>>>>>>>>>>>>>>>>>>", discountData);
+      setDiscountCodes(discountData);
       setLoading(false);
     } catch (error) {
       setLoading(false);
@@ -189,11 +189,11 @@ function Extension() {
                     >
                       {discount.code}
                     </Badge>
-                    {discount.priceRuleDetails.entitled_collection_ids
-                      .length === 0 &&
-                    discount.priceRuleDetails.entitled_product_ids.length ===
+                    {discount.priceRuleDetails?.entitled_collection_ids
+                      ?.length === 0 &&
+                    discount.priceRuleDetails?.entitled_product_ids?.length ===
                       0 &&
-                    discount.priceRuleDetails.value_type === "fixed_amount" ? (
+                    discount.priceRuleDetails?.value_type === "fixed_amount" ? (
                       <Text
                         style={{
                           whiteSpace: "nowrap",
@@ -208,43 +208,40 @@ function Extension() {
                         and avail -$
                         {Math.abs(
                           Math.round(
-                            parseFloat(discount.priceRuleDetails.value)
+                            parseFloat(discount.priceRuleDetails?.value ?? 0)
                           )
                         )}{" "}
                         off an order
                       </Text>
-                    ) : discount.priceRuleDetails.target_type ===
+                    ) : discount.priceRuleDetails?.target_type ===
                         "shipping_line" &&
-                      discount?.priceRuleDetails?.prerequisite_subtotal_range &&
-                      !discount?.priceRuleDetails
+                      discount.priceRuleDetails?.prerequisite_subtotal_range &&
+                      !discount.priceRuleDetails
                         ?.prerequisite_shipping_price_range
                         ?.greater_than_or_equal_to ? (
                       <Text
-                        // as="h6"
-                        // fontWeight="regular"
                         style={{
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
-                        // variant="headingMd"
                       >
                         {" "}
                         and avail Free Shipping over order of $
                         {Math.round(
                           parseFloat(
-                            discount?.priceRuleDetails
+                            discount.priceRuleDetails
                               ?.prerequisite_subtotal_range
-                              ?.greater_than_or_equal_to
+                              ?.greater_than_or_equal_to ?? 0
                           )
                         )}
                       </Text>
                     ) : discount.priceRuleDetails
-                        .prerequisite_to_entitlement_quantity_ratio
-                        .prerequisite_quantity > 0 &&
+                        ?.prerequisite_to_entitlement_quantity_ratio
+                        ?.prerequisite_quantity > 0 &&
                       discount.priceRuleDetails
-                        .prerequisite_to_entitlement_quantity_ratio
-                        .entitled_quantity > 0 ? (
+                        ?.prerequisite_to_entitlement_quantity_ratio
+                        ?.entitled_quantity > 0 ? (
                       <Text
                         style={{
                           whiteSpace: "nowrap",
@@ -255,22 +252,22 @@ function Extension() {
                         variant="headingMd"
                         fontWeight="bold"
                       >
-                        {" "}
                         and get Buy{" "}
                         {
                           discount.priceRuleDetails
-                            .prerequisite_to_entitlement_quantity_ratio
-                            .prerequisite_quantity
+                            ?.prerequisite_to_entitlement_quantity_ratio
+                            ?.prerequisite_quantity
                         }{" "}
                         Get{" "}
                         {
                           discount.priceRuleDetails
-                            .prerequisite_to_entitlement_quantity_ratio
-                            .entitled_quantity
+                            ?.prerequisite_to_entitlement_quantity_ratio
+                            ?.entitled_quantity
                         }{" "}
-                        free offer{" "}
+                        free offer
                       </Text>
-                    ) : (
+                    ) : discount.priceRuleDetails?.prerequisite_product_ids ||
+                      discount.priceRuleDetails?.entitled_product_ids ? (
                       <>
                         <Text
                           style={{
@@ -294,12 +291,16 @@ function Extension() {
                           as="p"
                           fontWeight="regular"
                         >
-                          {Math.round(
-                            parseFloat(discount.priceRuleDetails.value)
+                          {discount.priceRuleDetails?.value_type !==
+                            "percentage" && "$"}
+                          {Math.abs(
+                            Math.round(
+                              parseFloat(discount.priceRuleDetails?.value ?? 0)
+                            )
                           )}
-                          {discount.priceRuleDetails.value_type !==
+                          {discount.priceRuleDetails?.value_type !==
                             "fixed_amount" && "%"}{" "}
-                          off
+                          off{" "}
                         </Text>
                         <Text
                           style={{
@@ -311,18 +312,18 @@ function Extension() {
                           variant="headingMd"
                           fontWeight="bold"
                         >
-                          {" "}
-                          {discount.priceRuleDetails.prerequisite_product_ids ||
-                          discount.priceRuleDetails.entitled_product_ids
-                            .length > 0
+                          {discount.priceRuleDetails?.prerequisite_product_ids
+                            ?.length > 0 ||
+                          discount.priceRuleDetails?.entitled_product_ids
+                            ?.length > 0
                             ? "Specific Product"
                             : discount.priceRuleDetails
-                                .prerequisite_collection_ids.length > 0
+                                ?.prerequisite_collection_ids?.length > 0
                             ? "Specific Collection"
                             : "Discount format or type needs to adjust????"}
                         </Text>
                       </>
-                    )}
+                    ) : null}
                   </View>
                 </InlineStack>
               </ListItem>

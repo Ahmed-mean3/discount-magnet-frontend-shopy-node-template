@@ -1,5 +1,11 @@
-import React from 'react';
-import { Page, Box, Stack, TextField as PolarisTextField, Select } from '@shopify/polaris';
+import React from "react";
+import {
+  Page,
+  Box,
+  Stack,
+  TextField as PolarisTextField,
+  Select,
+} from "@shopify/polaris";
 
 export function DiscountDetails({ discount, onClose }) {
   const targetTypeOptions = [
@@ -13,7 +19,10 @@ export function DiscountDetails({ discount, onClose }) {
   ];
 
   return (
-    <Page title="Discount Details" primaryAction={{ content: 'Close', onAction: onClose }}>
+    <Page
+      title="Discount Details"
+      primaryAction={{ content: "Close", onAction: onClose }}
+    >
       <Box padding="4">
         <Stack vertical>
           <PolarisTextField
@@ -55,8 +64,8 @@ export function DiscountDetails({ discount, onClose }) {
           <Select
             label="Target Selection"
             options={[
-              { label: 'All', value: 'all' },
-              { label: 'Specific Products', value: 'specific_products' },
+              { label: "All", value: "all" },
+              { label: "Specific Products", value: "specific_products" },
             ]}
             value={discount.targetSelection}
             disabled
@@ -64,8 +73,8 @@ export function DiscountDetails({ discount, onClose }) {
           <Select
             label="Allocation Method"
             options={[
-              { label: 'Across All Items', value: 'across' },
-              { label: 'To Each Item', value: 'each' },
+              { label: "Across All Items", value: "across" },
+              { label: "To Each Item", value: "each" },
             ]}
             value={discount.allocationMethod}
             disabled
@@ -76,11 +85,7 @@ export function DiscountDetails({ discount, onClose }) {
             value={discount.valueType}
             disabled
           />
-          <PolarisTextField
-            label="Value"
-            value={discount.value}
-            readOnly
-          />
+          <PolarisTextField label="Value" value={discount.value} readOnly />
           {discount.targetType === "shipping_line" && (
             <PolarisTextField
               label="Shipping Discount Value"
@@ -91,8 +96,8 @@ export function DiscountDetails({ discount, onClose }) {
           <Select
             label="Customer Selection"
             options={[
-              { label: 'All', value: 'all' },
-              { label: 'Specific Customers', value: 'specific_customers' },
+              { label: "All", value: "all" },
+              { label: "Specific Customers", value: "specific_customers" },
             ]}
             value={discount.customerSelection}
             disabled

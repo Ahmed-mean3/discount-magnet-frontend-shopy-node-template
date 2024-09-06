@@ -18,7 +18,7 @@ import { ProductsCard } from "../components";
 export default function HomePage() {
   const { t } = useTranslation();
   return (
-    <Page narrowWidth>
+    <Page fullWidth>
       <TitleBar title={t("HomePage.title")} primaryAction={null} />
       <Layout>
         <Layout.Section>
