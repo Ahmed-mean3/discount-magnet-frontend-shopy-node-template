@@ -176,7 +176,7 @@ export default function AddDiscount() {
     const day = date.getDate().toString().padStart(2, "0"); // Ensures two-digit day
     return `${year}-${month}-${day}`;
   }
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState();
   const [selectedDateEnd, setSelectedDateEnd] = useState();
 
   const handleDateChange = (newDate, isReturn = false, incr = false) => {
@@ -220,6 +220,11 @@ export default function AddDiscount() {
     return `${year}-${month}-${day}`;
   }
 
+  useEffect(() => {
+    if (!selectedDate) {
+      setSelectedDate(handleDateChange(new Date(), true));
+    }
+  }, []);
   // // Example usage:
   // const newDate = modifyDate("2024-08-05");
   // console.log(newDate); // Output: 2024-07-06
@@ -610,7 +615,7 @@ export default function AddDiscount() {
         checked,
         "selected end date if true if is->"
       );
-      // return;
+      return;
       // return;
       //   const newDiscount = {
       //     "price_rule": {
@@ -710,7 +715,7 @@ export default function AddDiscount() {
 
       console.log("error", error);
     } finally {
-      // return;
+      return;
 
       if (!isValid) {
         setModalLoader(false);
@@ -845,10 +850,10 @@ export default function AddDiscount() {
       // console.log("matched option->>>>>>", tag);
       // return;
       // Find the option that matches the selected item's value
-      const matchedOption = options.find((option) =>
+      const matchedOption = options.filter((option) =>
         option.label === tag.toLowerCase() ? option.value : null
       );
-
+      // console.log("checkup", matchedOption);
       // return;
       setProdIds((prev) => {
         const updatedSet = new Set(prev);
@@ -856,10 +861,11 @@ export default function AddDiscount() {
         // Iterate through previously selected items and remove those not in the current selection
         prev.forEach((item) => {
           // console.log("tagass", matchedOption?.value === item);
-
-          if (matchedOption?.value === item) {
-            updatedSet.delete(item);
-          }
+          matchedOption.forEach((_item) => {
+            if (_item.value === item) {
+              updatedSet.delete(item);
+            }
+          });
         });
 
         // // Add all currently selected items to the Set
@@ -874,10 +880,12 @@ export default function AddDiscount() {
 
         // Iterate through previously selected items and remove those not in the current selection
         prev.forEach((item) => {
-          console.log("problem", matchedOption.value, item);
-          if (matchedOption.value === item) {
-            updatedSet.delete(item);
-          }
+          // console.log("problem", matchedOption.value, item);
+          matchedOption.forEach((_item) => {
+            if (_item.value === item) {
+              updatedSet.delete(item);
+            }
+          });
         });
 
         // // Add all currently selected items to the Set
@@ -1321,10 +1329,20 @@ export default function AddDiscount() {
             /> */}
 
             <FormLayout condensed>
-              <DatePickerMain
+              {/* <DatePickerMain
                 label="Select a start date"
                 initialDate={selectedDate}
                 onDateChange={(val) => handleDateChange(val, false, false)}
+              /> */}
+              <PolarisTextField
+                label="Select a start date"
+                type="date"
+                value={selectedDate}
+                onChange={(value) => {
+                  console.log("value", value);
+                  setSelectedDate(value);
+                  // setStartsAtTime(`${value}:00`);
+                }}
               />
               {codeStartDateError && (
                 <Text as="p" color="critical">
