@@ -701,8 +701,8 @@ export default function AddDiscount() {
       const data = { status: true };
 
       // navigate("/", { state: data });
-      setToastVisible(true);
-      fetchDiscounts();
+      // setToastVisible(true);
+      // fetchDiscounts();
 
       // document.getElementById("discount-section").scrollIntoView();
       navigate("/", { state: data });

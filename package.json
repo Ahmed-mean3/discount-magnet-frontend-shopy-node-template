@@ -12,6 +12,7 @@
     "deploy": "shopify app deploy"
   },
   "dependencies": {
+    "@shopify/polaris": "^13.9.0",
     "cors": "^2.8.5"
   },
   "author": "Mean 3",
