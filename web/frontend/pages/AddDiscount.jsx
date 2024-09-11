@@ -46,6 +46,7 @@ export default function AddDiscount() {
   const navigate = useNavigate();
   const [filterValue, setFilterValue] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAutomatic, setIsAutomatic] = useState(true);
   const [newDiscountTitle, setNewDiscountTitle] = useState("");
   const [newDiscountAmount, setNewDiscountAmount] = useState("");
   const [newDiscountExpiry, setNewDiscountExpiry] = useState("");
@@ -75,9 +76,11 @@ export default function AddDiscount() {
   const [customerSelectionError, setCustomerSelectionError] = useState(false);
   const [productIdsError, setProductIdsError] = useState(false);
   const [startsAtTime, setStartsAtTime] = useState(formatTime(new Date()));
-  const [endAtTime, setEndAtTime] = useState();
+  const [endAtTime, setEndAtTime] = useState(formatTime(new Date()));
   const [discountCodeType, setDiscountCodeType] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const [CollectionOptions, setCollectionOptions] = useState([]);
+
   const [
     prerequisiteToEntitlementQuantityRatio,
     setPrerequisiteToEntitlementQuantityRatio,
@@ -119,7 +122,7 @@ export default function AddDiscount() {
     { label: "Percentage", value: "percentage" },
   ];
   const AppliesToOptions = [
-    // { label: "Specific Collection", value: "specific_collection" },
+    { label: "Specific Collection", value: "specific_collection" },
     { label: "Specific Product", value: "specific_product" },
   ];
   const [selectedTags, setSelectedTags] = useState([]);
@@ -156,17 +159,37 @@ export default function AddDiscount() {
     color: "black",
     fontWeight: "bold", // Make the bullet bolder
   };
-  const deselectedOptions = useMemo(
-    () =>
-      ProductOptions.map((product) => ({
-        value: product.value,
-        label: product.label,
-      })),
-    [ProductOptions]
-  );
+  // [appliesTo === "specific_collection" ? CollectionOptions : ProductOptions];
+  // const deselectedOptions = useMemo(
+  //   () =>
+  //     appliesTo === "specific_collection"
+  //       ? CollectionOptions.map((collection) => ({
+  //           value: collection.value,
+  //           label: collection.label,
+  //         }))
+  //       : ProductOptions.map((product) => ({
+  //           value: product.value,
+  //           label: product.label,
+  //         })),
+  //   [appliesTo, CollectionOptions, ProductOptions] // depend on appliesTo and options
+  // );
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [inputValue, setInputValue] = useState("");
-  const [options, setOptions] = useState(deselectedOptions);
+  const [options, setOptions] = useState([]);
+  useEffect(() => {
+    const updatedOptions =
+      appliesTo === "specific_collection"
+        ? CollectionOptions.map((collection) => ({
+            value: collection.value,
+            label: collection.label,
+          }))
+        : ProductOptions.map((product) => ({
+            value: product.value,
+            label: product.label,
+          }));
+
+    setOptions(updatedOptions);
+  }, [appliesTo, CollectionOptions, ProductOptions]);
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
@@ -176,8 +199,28 @@ export default function AddDiscount() {
     const day = date.getDate().toString().padStart(2, "0"); // Ensures two-digit day
     return `${year}-${month}-${day}`;
   }
-  const [selectedDate, setSelectedDate] = useState();
-  const [selectedDateEnd, setSelectedDateEnd] = useState();
+  function modifyDate(dateString) {
+    // Parse the given date string into a Date object
+    let date = new Date(dateString);
+
+    // Decrement the month by 1 (Date object handles the year rollover if needed)
+    date.setMonth(date.getMonth() - 1);
+
+    // Increment the day by 1
+    date.setDate(date.getDate() + 1);
+
+    // Extract the updated year, month, and day, ensuring proper formatting
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 2).toString().padStart(2, "0"); // Ensures two-digit month
+    const day = date.getDate().toString().padStart(2, "0"); // Ensure two-digit day
+
+    // Return the formatted date string
+    return `${year}-${month}-${day}`;
+  }
+  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
+  const [selectedDateEnd, setSelectedDateEnd] = useState(
+    modifyDate(new Date())
+  );
 
   const handleDateChange = (newDate, isReturn = false, incr = false) => {
     //apply below if incr is true
@@ -201,24 +244,6 @@ export default function AddDiscount() {
     }
   };
   console.log("Selected Date 2:", selectedDate);
-  function modifyDate(dateString) {
-    // Parse the given date string into a Date object
-    let date = new Date(dateString);
-
-    // Decrement the month by 1 (Date object handles the year rollover if needed)
-    date.setMonth(date.getMonth() - 1);
-
-    // Increment the day by 1
-    date.setDate(date.getDate() + 1);
-
-    // Extract the updated year, month, and day, ensuring proper formatting
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Ensure two-digit month
-    const day = date.getDate().toString().padStart(2, "0"); // Ensure two-digit day
-
-    // Return the formatted date string
-    return `${year}-${month}-${day}`;
-  }
 
   useEffect(() => {
     if (!selectedDate) {
@@ -237,24 +262,34 @@ export default function AddDiscount() {
     console.log("Selected Date end:", `${year}-${month}-${day}`);
     setSelectedDateEnd(`${year}-${month}-${day}`);
   };
-  console.log(deselectedOptions, "000000000000000000000000");
+  console.log(options, "000000000000000000000000");
   const updateText = useCallback(
     (value) => {
       setInputValue(value);
 
       if (value === "") {
-        setOptions(deselectedOptions);
+        setOptions(
+          appliesTo === "specific_collection"
+            ? CollectionOptions.map((collection) => ({
+                value: collection.value,
+                label: collection.label,
+              }))
+            : ProductOptions.map((product) => ({
+                value: product.value,
+                label: product.label,
+              }))
+        );
         return;
       }
 
       const filterRegex = new RegExp(value, "i");
-      const resultOptions = deselectedOptions.filter((option) =>
+      const resultOptions = options.filter((option) =>
         option.label.toLowerCase().includes(value.toLowerCase())
       );
       console.log("matching out..", resultOptions);
       setOptions(resultOptions);
     },
-    [deselectedOptions]
+    [options]
   );
   console.log("selection side", selectedOptions);
   function formatTime(date, isSecond = false) {
@@ -343,7 +378,58 @@ export default function AddDiscount() {
   const filteredDiscounts = discounts.filter((discount) =>
     discount?.title?.toLowerCase().includes(filterValue.toLowerCase())
   );
+  const handleFetchCollectionPopulate = async () => {
+    // setIsLoading(true);
+    const apiUrl = `http://localhost:4000/get-collections?limit=50`;
 
+    await axios
+      .get(apiUrl, {
+        headers: {
+          "api-key": "Do2j^jF",
+          "shop-name": "store-for-customer-account-test",
+          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+          "shopify-api-token": "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",
+          "Content-Type": "application/json",
+        },
+      })
+
+      .then((data) => {
+        // console.log(data.data); // This will log the fetched products
+        // You can now use the 'data' variable to access your fetched products
+        // Mapping the products data to the desired format
+        const formattedCollection = data.data.data.map((collection) => ({
+          label: collection.title,
+          value: collection.id,
+        }));
+        console.log("Fetched collections:", formattedCollection); // Debugging line
+        // const deselectedOptions = useMemo(() => formattedCollection, []);
+        // console.log(formattedCollection);
+        setCollectionOptions(formattedCollection);
+        // setIsLoading(false);
+      })
+      .catch((error) => {
+        // setIsLoading(false);
+        console.log("There was an error fetching the products:", error);
+      });
+
+    // if (response.ok) {
+    //   console.log("fetched products......", response.json());
+    //   // await refetchProductCount();
+    //   // setToastProps({
+    //   //   content: t("ProductsCard.productsCreatedToast", {
+    //   //     count: productsCount,
+    //   //   }),
+    //   // });
+    // } else {
+    //   console.log("fetched products......", response);
+
+    //   setIsLoading(false);
+    //   // setToastProps({
+    //   //   content: t("ProductsCard.errorCreatingProductsToast"),
+    //   //   error: true,
+    //   // });
+    // }
+  };
   const fetchPriceRule = async (price_rule_id) => {
     try {
       const apiUrl = `https://middleware-discountapp.mean3.ae/get-price_rule/${price_rule_id}`;
@@ -408,7 +494,16 @@ export default function AddDiscount() {
   useEffect(() => {
     // fetchDiscounts();
     handleFetchPopulate();
+    handleFetchCollectionPopulate();
   }, []);
+  useEffect(() => {
+    // fetchDiscounts();
+    if (appliesTo === "specific_collection") {
+      handleFetchCollectionPopulate();
+    } else {
+      handleFetchPopulate();
+    }
+  }, [appliesTo]);
   // useEffect(() => {
   //   fetchDiscounts();
   // }, [toastVisible]);
@@ -459,6 +554,34 @@ export default function AddDiscount() {
 
     return extractedDate;
   }
+  const createDiscount = async () => {
+    const productIds = ["9526024536366", "9526024306990"]; // Example product ID
+    const discountTitle = "Automatic Discount from graphql 20%";
+    const startsAt = "2024-09-11T00:00:00Z";
+    const endsAt = "2024-09-12T00:00:00Z";
+    const discountValue = 15; // Discount percentage
+
+    try {
+      const response = await fetch("/api/create-automatic-discount", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          discountTitle,
+          startsAt,
+          endsAt,
+          discountValue,
+          productIds,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Discount created:", data);
+    } catch (error) {
+      console.error("Error creating discount:", error);
+    }
+  };
 
   const handleCreateDiscount = async () => {
     let isValid = false;
@@ -592,7 +715,9 @@ export default function AddDiscount() {
           value_type: valueType,
           value: value,
           customer_selection: "all",
-          entitled_product_ids: prodIds,
+          [appliesTo === "specific_collection"
+            ? "entitled_collection_ids"
+            : "entitled_product_ids"]: prodIds,
           starts_at:
             extractDate(selectedDate) === new Date().toDateString()
               ? handleDateChange(new Date(), true)
@@ -642,7 +767,7 @@ export default function AddDiscount() {
       //  return;
       //  console.log('hardcode->>>>>>',_newDiscount)
       const response = await axios.post(
-        "https://middleware-discountapp.mean3.ae/add-discount-code",
+        "http://localhost:4000/add-discount-code",
         newDiscount,
         {
           headers: {
@@ -715,16 +840,32 @@ export default function AddDiscount() {
 
       console.log("error", error);
     } finally {
-      // return ;
+      // return;
 
       if (!isValid) {
         setModalLoader(false);
         return;
       }
       const data = { status: true };
+      setSelectedDate(formatDate(new Date()));
+      setSelectedDateEnd(modifyDate(new Date()));
+      setStartsAtTime(formatTime(new Date()));
+      setEndAtTime(formatTime(new Date()));
+      setShippingError(false);
+      setCodeStartDateError(false);
+      setProductIdsError(false);
+      setTitleError(false);
+      setAmountError(false);
+      setExpiryError(false);
+      setCodeError(false);
+      setTypeError(false);
+      setValueError(false);
+      setSelectedTags([]);
+      setValue("");
       setProdIds([]);
       setSelectedTags([]);
       setProductIdsError(false);
+      setAppliesTo("specific_product");
       // Ensure loader is turned off
       setModalLoader(false);
 
@@ -1246,7 +1387,17 @@ export default function AddDiscount() {
                 }
                 options={filteredAppliesToOptions}
                 value={appliesTo}
-                onChange={(value) => setAppliesTo(value)}
+                onChange={(value) => {
+                  // setCollectionOptions([]);
+                  // setProductOptions([]);
+                  setAppliesTo(value);
+
+                  if (appliesTo === "specific_collection") {
+                    setProductOptions([]);
+                  } else {
+                    setCollectionOptions([]);
+                  }
+                }}
               />
             </div>
           </div>
@@ -1365,11 +1516,22 @@ export default function AddDiscount() {
                 gap: "10px",
               }}
             >
-              <DatePickerMain
+              {/* <DatePickerMain
                 label="Select an end date"
                 initialDate={modifyDate(selectedDateEnd)}
                 onDateChange={handleDateChangeEnd}
-              />
+              /> */}
+
+              <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
+                <PolarisTextField
+                  label="Select a start date"
+                  type="date"
+                  value={selectedDateEnd}
+                  onChange={(value) => {
+                    setSelectedDateEnd(value);
+                  }}
+                />
+              </FormLayout>
               <PolarisTextField
                 label="End time"
                 type="time"
@@ -1497,7 +1659,9 @@ export default function AddDiscount() {
         )}
         <button
           // loading={modalLoader}
-          onClick={handleCreateDiscount}
+          onClick={() =>
+            isAutomatic ? createDiscount() : handleCreateDiscount()
+          }
           primary
           style={{
             backgroundColor: "black",

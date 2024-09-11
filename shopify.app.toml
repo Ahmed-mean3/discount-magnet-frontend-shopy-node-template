@@ -3,7 +3,7 @@
 client_id = "38aaf4139f78d5a424df9647822e4002"
 name = "discount_app_ahmed"
 handle = "discount_app_ahmed"
-application_url = "https://adolescent-recipients-because-funeral.trycloudflare.com"
+application_url = "https://verse-yahoo-confirmation-favorite.trycloudflare.com"
 embedded = true
 
 [build]
@@ -16,16 +16,16 @@ scopes = "read_discounts,read_price_rules,read_products,write_discounts,write_pr
 
 [auth]
 redirect_urls = [
-  "https://adolescent-recipients-because-funeral.trycloudflare.com/auth/callback",
-  "https://adolescent-recipients-because-funeral.trycloudflare.com/auth/shopify/callback",
-  "https://adolescent-recipients-because-funeral.trycloudflare.com/api/auth/callback"
+  "https://verse-yahoo-confirmation-favorite.trycloudflare.com/auth/callback",
+  "https://verse-yahoo-confirmation-favorite.trycloudflare.com/auth/shopify/callback",
+  "https://verse-yahoo-confirmation-favorite.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-07"
 
 [app_proxy]
-url = "https://adolescent-recipients-because-funeral.trycloudflare.com/myApp"
+url = "https://verse-yahoo-confirmation-favorite.trycloudflare.com/myApp"
 subpath = "proxy"
 prefix = "apps"
 

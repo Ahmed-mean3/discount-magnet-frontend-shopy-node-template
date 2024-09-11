@@ -46,6 +46,7 @@ export function ProductsCard() {
   const [valueType, setValueType] = useState("fixed_amount");
   const [productIds, setProductIds] = useState([]);
   const [ProductOptions, setProductOptions] = useState([]);
+  const [CollectionOptions, setCollectionOptions] = useState([]);
   const [prodIds, setProdIds] = useState([]);
   const [value, setValue] = useState("");
   const [shippingDiscountValue, setShippingDiscountValue] = useState("");
@@ -324,6 +325,7 @@ export function ProductsCard() {
   useEffect(() => {
     fetchDiscounts();
     handleFetchPopulate();
+    handleFetchCollectionPopulate();
   }, []);
   useEffect(() => {
     fetchDiscounts();
@@ -345,10 +347,14 @@ export function ProductsCard() {
 
   const rows = discounts.map((discount) => [
     discount.code,
-    discount.priceRuleDetails?.value_type,
-    discount.priceRuleDetails?.value,
-    discount.priceRuleDetails?.target_type,
-    discount.priceRuleDetails?.target_selection,
+    discount.priceRuleDetails?.value_type === "fixed_amount"
+      ? "Fixed Amount"
+      : "Percentage",
+    Math.abs(Number(discount.priceRuleDetails?.value)),
+    discount.priceRuleDetails?.target_type === "shipping_line"
+      ? "Shipping Line"
+      : "Line Item",
+    discount.priceRuleDetails?.target_selection === "all" ? "All" : "Entitled",
     // discount.priceRuleDetails?.allocation_method,
     // discount.priceRuleDetails?.customer_selection,
     // discount.priceRuleDetails.entitled_product_ids,
@@ -609,6 +615,64 @@ export function ProductsCard() {
       .catch((error) => {
         setIsLoading(false);
         console.error("There was an error fetching the products:", error);
+      });
+
+    // if (response.ok) {
+    //   console.log("fetched products......", response.json());
+    //   // await refetchProductCount();
+    //   // setToastProps({
+    //   //   content: t("ProductsCard.productsCreatedToast", {
+    //   //     count: productsCount,
+    //   //   }),
+    //   // });
+    // } else {
+    //   console.log("fetched products......", response);
+
+    //   setIsLoading(false);
+    //   // setToastProps({
+    //   //   content: t("ProductsCard.errorCreatingProductsToast"),
+    //   //   error: true,
+    //   // });
+    // }
+  };
+  //original fetcher collection
+  const handleFetchCollectionPopulate = async () => {
+    // setIsLoading(true);
+    const apiUrl = `http://localhost:4000/get-collections?limit=50`;
+
+    await axios
+      .get(apiUrl, {
+        headers: {
+          "api-key": "Do2j^jF",
+          "shop-name": "store-for-customer-account-test",
+          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+          "shopify-api-token": "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",
+          "Content-Type": "application/json",
+        },
+      })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json(); // Assuming the response is in JSON format
+      })
+      .then((data) => {
+        // console.log(data.data); // This will log the fetched products
+        // You can now use the 'data' variable to access your fetched products
+        // Mapping the products data to the desired format
+        const formattedCollection = data.data.map((collection) => ({
+          label: collection.title,
+          value: collection.id,
+        }));
+        console.log("Fetched collections:", data); // Debugging line
+        // const deselectedOptions = useMemo(() => formattedCollection, []);
+        // console.log(formattedCollection);
+        setCollectionOptions(formattedCollection);
+        // setIsLoading(false);
+      })
+      .catch((error) => {
+        // setIsLoading(false);
+        console.log("There was an error fetching the products:", error);
       });
 
     // if (response.ok) {

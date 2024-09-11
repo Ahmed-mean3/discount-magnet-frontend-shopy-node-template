@@ -1,4 +1,4 @@
-// @ts-check
+// @ts-nocheck
 import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
@@ -136,41 +136,223 @@ app.post("/api/products", async (_req, res) => {
   res.status(status).send({ success: status === 200, error });
 });
 
-app.post("/myApp/get-discounts", async (req, res) => {
+// app.post("/myApp/get-discounts", async (req, res) => {
+//   try {
+//     let discountValues = req.body;
+//     console.log("data recieved from client side", discountValues);
+//     fetch("https://jsonplaceholder.typicode.com/todos/1")
+//       .then((response) => response.json())
+//       .then((data) => {
+//         console.log(data);
+//         res.status(200).json(data);
+//       })
+//       .catch((e) => {
+//         console.error("Error:", e);
+
+//         res.status(500).send({ message: "Failed to fetch discounts data" });
+//       });
+//     return;
+//     const apiKey = "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"; // Your Shopify API key
+//     const apiPassword = "185e5520a93d7e0433e4ca3555f01b99"; // Your API password (if applicable)
+//     const apiUrl =
+//       "https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/price_rules/1202709266572/discount_codes.json";
+
+//     const response = await fetch(apiUrl, {
+//       method: "GET",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Basic ${btoa(`${apiPassword}:${apiKey}`)}`, // Base64 encode the credentials
+//       },
+//     });
+
+//     const data = await response.json();
+//     console.log("data recieved from api discounts at backend", data);
+//     res.status(200).json(data);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).send({ message: "Failed to fetch discounts data" });
+//   }
+// });
+
+app.post("/api/create-automatic-discount", async (req, res) => {
   try {
-    let discountValues = req.body;
-    console.log("data recieved from client side", discountValues);
-    fetch("https://jsonplaceholder.typicode.com/todos/1")
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data);
-        res.status(200).json(data);
-      })
-      .catch((e) => {
-        console.error("Error:", e);
+    // const productsData = await shopify.api.rest.Product.all({
+    //   session: res.locals.shopify.session,
+    // });
 
-        res.status(500).send({ message: "Failed to fetch discounts data" });
-      });
-    return;
-    const apiKey = "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"; // Your Shopify API key
-    const apiPassword = "185e5520a93d7e0433e4ca3555f01b99"; // Your API password (if applicable)
-    const apiUrl =
-      "https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/price_rules/1202709266572/discount_codes.json";
-
-    const response = await fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${btoa(`${apiPassword}:${apiKey}`)}`, // Base64 encode the credentials
+    const client = new shopify.api.clients.Graphql({
+      session: res.locals.shopify.session,
+    });
+    const _data = await client.query({
+      data: {
+        query: `mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
+          discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
+            userErrors {
+              field
+              message
+            }
+            automaticAppDiscount {
+              discountId
+              title
+              startsAt
+              endsAt
+              status
+              appDiscountType {
+                appKey
+                functionId
+              }
+              combinesWith {
+                orderDiscounts
+                productDiscounts
+                shippingDiscounts
+              }
+            }
+          }
+        }`,
+        variables: {
+          automaticAppDiscount: {
+            title: "Winter discount auto 5% off",
+            functionId: "a7bccf45-0744-43a4-8efa-f51c1834cf64", // Assuming this is correct
+            combinesWith: {
+              orderDiscounts: true,
+              productDiscounts: true,
+              shippingDiscounts: true,
+            },
+            startsAt: "2024-09-11T00:00:00Z",
+            endsAt: "2024-09-12T00:00:00Z",
+            metafields: [
+              {
+                namespace: "default",
+                key: "function-configuration",
+                type: "json",
+                value: JSON.stringify({
+                  discounts: [
+                    {
+                      value: {
+                        percentage: {
+                          value: 5, // Set to 5% as per your title
+                        },
+                      },
+                      targets: [
+                        {
+                          productVariantIds: [
+                            "gid://shopify/ProductVariant/43321336266892",
+                            "gid://shopify/ProductVariant/43321336299660",
+                            "gid://shopify/ProductVariant/43321336332428",
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                  discountApplicationStrategy: "ALL", // Apply the discount to all relevant items
+                }),
+              },
+            ],
+          },
+        },
       },
     });
 
-    const data = await response.json();
-    console.log("data recieved from api discounts at backend", data);
-    res.status(200).json(data);
+    console.log("Discount createdee:", _data);
+
+    res.status(200).json(_data);
+    return;
+    // Extract values from the request body
+    const { discountTitle, startsAt, endsAt, discountValue, productIds } =
+      req.body;
+
+    // Construct the GraphQL mutation for creating an automatic discount
+    const query = `
+      mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
+        discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
+          userErrors {
+            field
+            message
+          }
+          automaticAppDiscount {
+            discountId
+            title
+            startsAt
+            endsAt
+            status
+            appDiscountType {
+            appKey
+            functionId
+            }
+            combinesWith {
+              orderDiscounts
+              productDiscounts
+              shippingDiscounts
+            }
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      automaticAppDiscount: {
+        title: discountTitle,
+        functionId: "a7bccf45-0744-43a4-8efa-f51c1834cf64", // Include the functionId
+        combinesWith: {
+          orderDiscounts: true,
+          productDiscounts: true,
+          shippingDiscounts: true,
+        },
+        startsAt: startsAt,
+        endsAt: endsAt,
+        metafields: [
+          {
+            namespace: "default",
+            key: "function-configuration",
+            type: "json",
+            value: JSON.stringify({
+              discounts: [
+                {
+                  value: {
+                    fixedAmount: {
+                      amount: discountValue,
+                    },
+                  },
+                  targets: [
+                    {
+                      orderSubtotal: {
+                        excludedVariantIds: [],
+                      },
+                    },
+                  ],
+                },
+              ],
+              discountApplicationStrategy: "FIRST",
+            }),
+          },
+        ],
+      },
+    };
+
+    const response = await fetch(
+      `https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${Buffer.from(
+            `185e5520a93d7e0433e4ca3555f01b99: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`
+          ).toString("base64")}`,
+        },
+        body: JSON.stringify({
+          query,
+          variables,
+        }),
+      }
+    );
+
+    // const data = await response.json();
+    // console.log("Discount created:", data);
+
+    // res.status(200).json(data);
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).send({ message: "Failed to fetch discounts data" });
+    console.error("Error creating discount:", error);
+    res.status(500).send({ message: "Failed to create discount" });
   }
 });
 
