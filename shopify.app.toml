@@ -3,29 +3,30 @@
 client_id = "38aaf4139f78d5a424df9647822e4002"
 name = "discount_app_ahmed"
 handle = "discount_app_ahmed"
-application_url = "https://verse-yahoo-confirmation-favorite.trycloudflare.com"
+application_url = "https://science-describes-ambien-todd.trycloudflare.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
 dev_store_url = "store-for-customer-account-test.myshopify.com"
+include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_discounts,read_price_rules,read_products,write_discounts,write_price_rules,write_products"
+scopes = "read_customers,read_discounts,read_price_rules,read_products,write_customers,write_discounts,write_price_rules,write_products"
 
 [auth]
 redirect_urls = [
-  "https://verse-yahoo-confirmation-favorite.trycloudflare.com/auth/callback",
-  "https://verse-yahoo-confirmation-favorite.trycloudflare.com/auth/shopify/callback",
-  "https://verse-yahoo-confirmation-favorite.trycloudflare.com/api/auth/callback"
+  "https://science-describes-ambien-todd.trycloudflare.com/auth/callback",
+  "https://science-describes-ambien-todd.trycloudflare.com/auth/shopify/callback",
+  "https://science-describes-ambien-todd.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-07"
 
 [app_proxy]
-url = "https://verse-yahoo-confirmation-favorite.trycloudflare.com/myApp"
+url = "https://science-describes-ambien-todd.trycloudflare.com/myApp"
 subpath = "proxy"
 prefix = "apps"
 

@@ -7,6 +7,7 @@ import {
   Spinner,
   Image,
   useApi,
+  useAuthenticatedAccountCustomer,
 } from "@shopify/ui-extensions-react/customer-account";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -42,6 +43,39 @@ function Extension() {
   const [page, setPage] = useState(null);
   const [prevPage, setPrevPage] = useState(null);
   const { ui } = useApi();
+  const { id } = useAuthenticatedAccountCustomer();
+
+  console.log("customerrrr", id);
+  // Function to filter discounts based on customers array
+  // Function to filter discounts based on customers array
+  function filterDiscountsByCustomer(discounts) {
+    return discounts.filter((discount) => {
+      const { prerequisite_customer_ids, customer_segment_prerequisite_ids } =
+        discount.priceRuleDetails;
+
+      // Convert customerId to a number for correct comparison
+      const _id = Number(id);
+      // If both arrays are null or empty, automatically add the discount
+      const hasNoPrerequisites =
+        (!prerequisite_customer_ids ||
+          prerequisite_customer_ids.length === 0) &&
+        (!customer_segment_prerequisite_ids ||
+          customer_segment_prerequisite_ids.length === 0);
+
+      if (hasNoPrerequisites) {
+        return true;
+      }
+
+      // Check if the customer id matches any of the prerequisite IDs or segment IDs
+      const matchesPrerequisiteCustomer =
+        prerequisite_customer_ids?.includes(_id);
+      const matchesPrerequisiteSegment =
+        customer_segment_prerequisite_ids?.includes(_id);
+
+      // Add the discount if the id matches either condition
+      return matchesPrerequisiteCustomer || matchesPrerequisiteSegment;
+    });
+  }
 
   const fetchDiscounts = async (isPaginate = null) => {
     try {
@@ -82,11 +116,50 @@ function Extension() {
       //     };
       //   })
       // );
-      // console.log("->>>>>>>>>>>>>>>>>>>>>>>>", response.data);
       setPrevPage(response.data.page.prevPage);
       setPage(response.data.page.forwardPage);
-      setDiscountCodes(discountData);
+      const customers = await fetchCustomers();
+      console.log("mathin", customers);
+
+      const matched = filterDiscountsByCustomer(discountData);
+      console.log("mathingggg....", matched);
+      setDiscountCodes(matched);
+
       setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.error("Error fetching discounts", error);
+    }
+  };
+  const fetchCustomers = async (isPaginate = null) => {
+    try {
+      let apiUrl = "http://localhost:4000/get-customers";
+      // if (isPaginate) {
+      //   apiUrl += `&page=${isPaginate}`;
+      // } else {
+      //   apiUrl = "http://localhost:4000/get-customers";
+      // }
+      // console.log(
+      //   "check function gets accurate page info?",
+      //   apiUrl,
+      //   "check state forward",
+      //   page,
+      //   "check state backward",
+      //   prevPage
+      // );
+      const response = await axios.get(apiUrl, {
+        headers: {
+          "api-key": "Do2j^jF",
+          "shop-name": "store-for-customer-account-test",
+          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+          "shopify-api-token": "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",
+          "Content-Type": "application/json",
+        },
+      });
+
+      const customersData = response.data.data;
+
+      return customersData;
     } catch (error) {
       setLoading(false);
       console.error("Error fetching discounts", error);
@@ -227,7 +300,7 @@ function Extension() {
     // fetchShowDetails();
     fetchDiscounts();
   }, []);
-  console.log("detail", userDiscountCollection);
+  console.log("detail", discountCodes);
   return (
     <BlockStack
       // inlineAlignment="center"

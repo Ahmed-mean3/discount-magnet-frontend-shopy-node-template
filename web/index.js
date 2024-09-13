@@ -121,6 +121,12 @@ app.get("/api/products/all", async (_req, res) => {
   });
   res.status(200).send(productsData);
 });
+app.get("/api/customers/all", async (_req, res) => {
+  const customersData = await shopify.api.rest.Customer.all({
+    session: res.locals.shopify.session,
+  });
+  res.status(200).send(customersData);
+});
 
 app.post("/api/products", async (_req, res) => {
   let status = 200;
@@ -183,173 +189,81 @@ app.post("/api/create-automatic-discount", async (req, res) => {
     const client = new shopify.api.clients.Graphql({
       session: res.locals.shopify.session,
     });
-    const _data = await client.query({
+
+    //DISCOUNT TYPE : ORDER DISCOUNT
+    const data = await client.query({
       data: {
-        query: `mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
-          discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
+        query: `mutation discountAutomaticBasicCreate($automaticBasicDiscount: DiscountAutomaticBasicInput!) {
+          discountAutomaticBasicCreate(automaticBasicDiscount: $automaticBasicDiscount) {
+            automaticDiscountNode {
+              id
+              automaticDiscount {
+                ... on DiscountAutomaticBasic {
+                  startsAt
+                  endsAt
+                  minimumRequirement {
+                    ... on DiscountMinimumSubtotal {
+                      greaterThanOrEqualToSubtotal {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                  customerGets {
+                    value {
+                      ... on DiscountAmount {
+                        amount {
+                          amount
+                          currencyCode
+                        }
+                        appliesOnEachItem
+                      }
+                    }
+                    items {
+                      ... on AllDiscountItems {
+                        allItems
+                      }
+                    }
+                  }
+                }
+              }
+            }
             userErrors {
               field
+              code
               message
-            }
-            automaticAppDiscount {
-              discountId
-              title
-              startsAt
-              endsAt
-              status
-              appDiscountType {
-                appKey
-                functionId
-              }
-              combinesWith {
-                orderDiscounts
-                productDiscounts
-                shippingDiscounts
-              }
             }
           }
         }`,
         variables: {
-          automaticAppDiscount: {
-            title: "Winter discount auto 5% off",
-            functionId: "a7bccf45-0744-43a4-8efa-f51c1834cf64", // Assuming this is correct
-            combinesWith: {
-              orderDiscounts: true,
-              productDiscounts: true,
-              shippingDiscounts: true,
-            },
-            startsAt: "2024-09-11T00:00:00Z",
-            endsAt: "2024-09-12T00:00:00Z",
-            metafields: [
-              {
-                namespace: "default",
-                key: "function-configuration",
-                type: "json",
-                value: JSON.stringify({
-                  discounts: [
-                    {
-                      value: {
-                        percentage: {
-                          value: 5, // Set to 5% as per your title
-                        },
-                      },
-                      targets: [
-                        {
-                          productVariantIds: [
-                            "gid://shopify/ProductVariant/43321336266892",
-                            "gid://shopify/ProductVariant/43321336299660",
-                            "gid://shopify/ProductVariant/43321336332428",
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                  discountApplicationStrategy: "ALL", // Apply the discount to all relevant items
-                }),
+          automaticBasicDiscount: {
+            title: "$50 off all orders over $200 during the summer of 2024",
+            startsAt: "2024-09-12T00:00:00Z",
+            endsAt: "2024-09-13T00:00:00Z",
+            minimumRequirement: {
+              subtotal: {
+                greaterThanOrEqualToSubtotal: 200,
               },
-            ],
+            },
+            customerGets: {
+              value: {
+                discountAmount: {
+                  amount: 50,
+                  appliesOnEachItem: false,
+                },
+              },
+              items: {
+                all: true,
+              },
+            },
           },
         },
       },
     });
 
-    console.log("Discount createdee:", _data);
+    console.log("Discount created:", data);
 
-    res.status(200).json(_data);
-    return;
-    // Extract values from the request body
-    const { discountTitle, startsAt, endsAt, discountValue, productIds } =
-      req.body;
-
-    // Construct the GraphQL mutation for creating an automatic discount
-    const query = `
-      mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
-        discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
-          userErrors {
-            field
-            message
-          }
-          automaticAppDiscount {
-            discountId
-            title
-            startsAt
-            endsAt
-            status
-            appDiscountType {
-            appKey
-            functionId
-            }
-            combinesWith {
-              orderDiscounts
-              productDiscounts
-              shippingDiscounts
-            }
-          }
-        }
-      }
-    `;
-
-    const variables = {
-      automaticAppDiscount: {
-        title: discountTitle,
-        functionId: "a7bccf45-0744-43a4-8efa-f51c1834cf64", // Include the functionId
-        combinesWith: {
-          orderDiscounts: true,
-          productDiscounts: true,
-          shippingDiscounts: true,
-        },
-        startsAt: startsAt,
-        endsAt: endsAt,
-        metafields: [
-          {
-            namespace: "default",
-            key: "function-configuration",
-            type: "json",
-            value: JSON.stringify({
-              discounts: [
-                {
-                  value: {
-                    fixedAmount: {
-                      amount: discountValue,
-                    },
-                  },
-                  targets: [
-                    {
-                      orderSubtotal: {
-                        excludedVariantIds: [],
-                      },
-                    },
-                  ],
-                },
-              ],
-              discountApplicationStrategy: "FIRST",
-            }),
-          },
-        ],
-      },
-    };
-
-    const response = await fetch(
-      `https://store-for-customer-account-test.myshopify.com/admin/api/2024-07/graphql.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${Buffer.from(
-            `185e5520a93d7e0433e4ca3555f01b99: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`
-          ).toString("base64")}`,
-        },
-        body: JSON.stringify({
-          query,
-          variables,
-        }),
-      }
-    );
-
-    // const data = await response.json();
-    // console.log("Discount created:", data);
-
-    // res.status(200).json(data);
+    res.status(200).json(data);
   } catch (error) {
     console.error("Error creating discount:", error);
     res.status(500).send({ message: "Failed to create discount" });
