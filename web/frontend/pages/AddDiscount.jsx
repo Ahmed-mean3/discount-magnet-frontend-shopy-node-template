@@ -1011,14 +1011,9 @@ export default function AddDiscount() {
         price_rule: {
           title: newDiscountCode,
           target_type: "line_item",
-          target_selection:
-            minRequirementCheckselected === "MPA" ||
-            minRequirementCheckselected === "MQI"
-              ? "entitled"
-              : "across",
+          target_selection: "entitled",
           allocation_method:
-            minRequirementCheckselected === "MPA" ||
-            minRequirementCheckselected === "MQI"
+            minRequirementCheckselected === "MPA" || minRequirementCheckselected === "MQI"
               ? "each"
               : "across",
           value_type: valueType,
@@ -1027,9 +1022,14 @@ export default function AddDiscount() {
             checkselected === "SC" || checkselected === "SCS"
               ? "prerequisite"
               : "all",
-          [appliesTo === "specific_collection"
-            ? "entitled_collection_ids"
-            : "entitled_product_ids"]: prodIds,
+          
+          // Ensure at least one entitlement is provided
+          ...(prodIds && prodIds.length > 0
+            ? appliesTo === "specific_collection"
+              ? { entitled_collection_ids: prodIds } // Collections entitlement
+              : { entitled_product_ids: prodIds } // Products entitlement
+            : {}),
+      
           starts_at:
             extractDate(selectedDate) === new Date().toDateString()
               ? handleDateChange(new Date(), true)
@@ -1041,34 +1041,36 @@ export default function AddDiscount() {
             : selectedDateEnd && endAtTime
             ? selectedDateEnd + ":" + endAtTime
             : null,
-          // Conditionally add the "prerequisite_customer_ids" key only if the condition is true
-          ...(checkselected === "SC" || checkselected === "SCS"
-            ? { prerequisite_customer_ids: customerIds } // Add this key-value pair if condition is true
+          
+          // Add prerequisite_customer_ids if applicable
+          ...(checkselected === "SC" || checkselected === "SCS" && customerIds.length > 0
+            ? { prerequisite_customer_ids: customerIds }
             : {}),
+      
           usage_limit: usageLimitValue,
-          once_per_customer: oneUserPerCustomerchecked
-            ? oneUserPerCustomerchecked
-            : false,
-
-          ...(minRequirementCheckselected === "MPA" &&
-            minPurchaseReq && {
-              prerequisite_subtotal_range: {
-                greater_than_or_equal_to: minPurchaseReq,
-              },
-              prerequisite_product_ids: prodIds, // Add item prerequisites (either products or collections)
-            }),
-          ...(minRequirementCheckselected === "MQI" &&
-            minQuantityReq && {
-              prerequisite_to_entitlement_quantity_ratio: {
-                prerequisite_quantity: minQuantityReq,
-                entitled_quantity: 1,
-              },
-              prerequisite_product_ids: prodIds, // Add item prerequisites (either products or collections)
-            }),
+          once_per_customer: !!oneUserPerCustomerchecked,
+      
+          // Conditionally add prerequisite if minRequirementCheckselected is "MPA"
+          ...(minRequirementCheckselected === "MPA" && minPurchaseReq && {
+            prerequisite_subtotal_range: {
+              greater_than_or_equal_to: minPurchaseReq,
+            },
+          }),
+      
+          // Conditionally add prerequisite if minRequirementCheckselected is "MQI"
+          ...(minRequirementCheckselected === "MQI" && minQuantityReq && {
+            prerequisite_to_entitlement_quantity_ratio: {
+              prerequisite_quantity: minQuantityReq,
+              entitled_quantity: 1,
+            },
+            prerequisite_product_ids: prodIds, // Only add when MQI is selected
+          }),
         },
         discount_code: newDiscountCode,
         discount_type: "product",
       };
+      
+      
       console.log(
         "payloardCheckup...",
         newDiscount,
