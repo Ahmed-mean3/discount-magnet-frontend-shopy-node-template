@@ -20,6 +20,7 @@ import {
   Card,
   Link,
   Text,
+  HorizontalStack,
 } from "@shopify/polaris";
 import { useAppQuery, useAuthenticatedFetch } from "../hooks";
 import { SearchMajor } from "@shopify/polaris-icons";
@@ -40,6 +41,7 @@ export function ProductsCard() {
   const [newDiscountType, setNewDiscountType] = useState("");
   const [entitledProductIds, setEntitledProductIds] = useState([]);
   const [discounts, setDiscounts] = useState([]);
+  const [filterDiscounts, setfilterDiscounts] = useState([]);
   const [targetType, setTargetType] = useState("line_item");
   const [targetSelection, setTargetSelection] = useState("all");
   const [allocationMethod, setAllocationMethod] = useState("across");
@@ -267,6 +269,7 @@ export function ProductsCard() {
       console.log("data main->>>>>>", response.data.data);
       //  return;
       setDiscounts(response.data.data);
+      setfilterDiscounts(response.data.data);
     } catch (error) {
       console.error("Error fetching discounts:", error);
     }
@@ -345,7 +348,7 @@ export function ProductsCard() {
     // "Discount Type",
   ];
 
-  const rows = discounts.map((discount) => [
+  const rows = filterDiscounts.map((discount) => [
     discount.code,
     discount.priceRuleDetails?.value_type === "fixed_amount"
       ? "Fixed Amount"
@@ -638,7 +641,7 @@ export function ProductsCard() {
   //original fetcher collection
   const handleFetchCollectionPopulate = async () => {
     // setIsLoading(true);
-    const apiUrl = `http://localhost:4000/get-collections?limit=50`;
+    const apiUrl = `https://middleware-discountapp.mean3.ae/get-collections?limit=50`;
 
     await axios
       .get(apiUrl, {
@@ -787,6 +790,21 @@ export function ProductsCard() {
     />
   );
 
+  const handleFilterDiscount = (value) => {
+    setFilterValue(value);
+
+    if (value === "") {
+      // If input is cleared, reset the filtered discounts to the full list
+      setfilterDiscounts(discounts);
+    } else {
+      // Filter the full list of discounts based on the current input value
+      const filtered = discounts.filter((discount) =>
+        discount.code.includes(value)
+      );
+      setfilterDiscounts(filtered);
+    }
+  };
+
   return (
     <Page title="" fullWidth>
       {/* <Box paddingBlockStart="400" width="586px" background="bg-fill-info">
@@ -812,11 +830,14 @@ export function ProductsCard() {
             <PolarisTextField
               label="Filter discounts"
               value={filterValue}
-              onChange={(value) => setFilterValue(value)}
+              onChange={handleFilterDiscount}
               placeholder="Search by title"
               autoComplete="off"
             />
-            <Button onClick={() => navigate("/AddDiscount")}>
+            <Button
+              onClick={() => navigate("/AddDiscount")}
+              // onClick={() => setIsModalOpen(true)}
+            >
               Create Discount
             </Button>
           </LegacyStack>
@@ -848,135 +869,63 @@ export function ProductsCard() {
       <Modal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Create Discount"
-        primaryAction={{
-          content: modalLoader ? "loading" : "Create",
-          onAction: handleCreateDiscount,
-          loading: modalLoader,
-        }}
+        title="Select discount type"
       >
         <Modal.Section>
-          <Form onSubmit={(e) => e.preventDefault()}>
-            <FormLayout>
-              {/* <PolarisTextField
-                label="title"
-                value={newDiscountTitle}
-                onChange={(value) => setNewDiscountTitle(value)}
-                error={titleError ? "Title should start with 'ccc'." : ""}
-              /> */}
-              <PolarisTextField
-                label="Discount Code"
-                value={newDiscountCode}
-                onChange={(value) => setNewDiscountCode(value)}
-                error={codeError ? "Discount code is required." : ""}
-              />
-              {/* <Select
-                label="target_type"
-                options={targetTypeOptions}
-                value={targetType}
-                onChange={(value) => setTargetType(value)}
-              /> */}
-              <Select
-                label="Discount Type"
-                options={filteredValueTypeOptions}
-                value={valueType}
-                onChange={(value) => setValueType(value)}
-              />
-              {/* <PolarisTextField
-                label="Discount Value"
-                type="number"
-                value={value}
-                onChange={(value) => setValue(value)}
-                error={valueError ? "Invalid value" : ""}
-              /> */}
-              <PolarisTextField
-                label="Discount Value "
-                type="number"
-                value={value}
-                onChange={handleChange}
-                error={valueError ? "Invalid Value" : ""}
-              />
-              <Autocomplete
-                allowMultiple
-                options={options}
-                selected={selectedOptions}
-                onSelect={updateSelection}
-                textField={textField}
-              />
-              <PolarisTextField
-                label="Start Date"
-                type="date"
-                value={startsAt}
-                onChange={(value) => setStartsAt(value)}
-              />
-              <PolarisTextField
-                label="End Date"
-                type="date"
-                value={endAt}
-                onChange={(value) => setEndAt(value)}
-              />
-              {/* <Select
-                label="target_selection"
-                options={targetSelectionOptions}
-                value={targetSelection}
-                onChange={(value) => setTargetSelection(value)}
-              />
-              <Select
-                label="allocation_method"
-                options={allocationMethodOptions}
-                value={allocationMethod}
-                onChange={(value) => setAllocationMethod(value)}
-              /> */}
-
-              {/* {targetType === "shipping_line" && (
-                <PolarisTextField
-                  label="Shipping Discount Value"
-                  type="number"
-                  value={shippingDiscountValue}
-                  onChange={(value) => setShippingDiscountValue(value)}
-                  error={
-                    shippingError ? "Shipping discount value is required." : ""
-                  }
-                />
-              )}
-              <Select
-                label="customer_selection"
-                options={customerSelectionOptions}
-                value={customerSelection}
-                onChange={(value) => setCustomerSelection(value)}
-              /> */}
-
-              {/* <ChoiceList
-                label="Select Products"
-                choices={ProductOptions}
-                selected={productIds}
-                onChange={(value) => setProductIds(value)}
-                allowMultiple
-              /> */}
-              {/* <Autocomplete
-                allowMultiple
-                options={ProductOptions} // Ensure this is correctly populated
-                selected={productIds}
-                onSelect={(value) => setProductIds(value)}
-                textField={
-                  <TextField
-                    label="Select Products"
-                    value={inputValue}
-                    onChange={updateText}
-                    placeholder="Search products"
-                  />
-                }
-              /> */}
-
-              {/* <Select
-                label="discount_type"
-                options={discountTypeOptions}
-                value={newDiscountType}
-                onChange={(value) => setNewDiscountType(value)}
-                error={typeError ? "Discount type is required." : ""}
-              /> */}
-            </FormLayout>
-          </Form>
+          {[
+            {
+              id: 1,
+              name: "Amount off products",
+              description:
+                "Discount specific products or collections of products.",
+              tagValue: "Product discount",
+            },
+            {
+              id: 2,
+              name: "Buy X get Y",
+              description: "Discount products based on customer's purchase.",
+              tagValue: "Product discount",
+            },
+            {
+              id: 3,
+              name: "Amount off order",
+              description: "Discount the total order amount.",
+              tagValue: "Order discount",
+            },
+            {
+              id: 4,
+              name: "Free shipping",
+              description: "Offer free shipping on an order.",
+              tagValue: "Shipping discount",
+            },
+          ].map((discount) => (
+            // main card
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: 10,
+                marginBottom: 10,
+              }}
+              key={discount.id}
+            >
+              <div>
+                <Text variant="headingSm" as="h6">
+                  {discount.name}
+                </Text>
+                <div style={{ marginTop: 5 }}>
+                  <Text color="subdued" variant="headingXs" as="h6">
+                    {discount.description}
+                  </Text>
+                </div>
+              </div>
+              <div>
+                <Badge>{discount.tagValue}</Badge>
+              </div>
+            </div>
+          ))}
         </Modal.Section>
       </Modal>
     </Page>

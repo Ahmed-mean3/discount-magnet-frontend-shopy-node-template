@@ -148,7 +148,7 @@ export default function AddDiscount() {
               error={
                 minRequirementCheckselected === "MPA" && minPurchaseReqError
                   ? "Minimum purchase value required."
-                  : minRequirementCheckselected === "MPA" && minQuantityReqError
+                  : minRequirementCheckselected === "MQI" && minQuantityReqError
                   ? "Minimum quantity value is required"
                   : ""
               }
@@ -283,7 +283,7 @@ export default function AddDiscount() {
   // );
   const defaultListStyle = {
     marginTop: "10px",
-    marginBottom: "10px",
+    marginBottom: "20px",
     fontSize: "12px",
     color: "gray",
     fontWeight: "500",
@@ -631,7 +631,7 @@ export default function AddDiscount() {
   );
   const handleFetchCollectionPopulate = async () => {
     // setIsLoading(true);
-    const apiUrl = `http://localhost:4000/get-collections?limit=50`;
+    const apiUrl = `https://middleware-discountapp.mean3.ae/get-collections?limit=50`;
 
     await axios
       .get(apiUrl, {
@@ -960,16 +960,7 @@ export default function AddDiscount() {
       //   "selected date",
       //   extractDate(selectedDate)
       // );
-      if (
-        (checkselected === "SC" || checkselected === "SCS") &&
-        customerIds.length === 0
-      ) {
-        setCustomerIdsError(true);
-        isValid = false;
-      } else {
-        isValid = true;
-        setCustomerIdsError(false);
-      }
+
       if (usageLimitchecked && !usageLimitValue) {
         isValid = false;
         setUsageLimitCodeError(true);
@@ -993,11 +984,23 @@ export default function AddDiscount() {
         setMinPurchaseReqError(false);
       }
       if (minRequirementCheckselected === "MQI" && !minQuantityReq) {
-        setMinPurchaseReqError(true);
+        setMinQuantityReqError(true);
         isValid = false;
       } else {
-        setMinPurchaseReqError(false);
+        setMinQuantityReqError(false);
       }
+
+      if (
+        (checkselected === "SC" || checkselected === "SCS") &&
+        customerIds.length === 0
+      ) {
+        setCustomerIdsError(true);
+        isValid = false;
+      } else {
+        isValid = true;
+        setCustomerIdsError(false);
+      }
+
       if (!isValid) {
         setModalLoader(false);
         return;
@@ -1100,7 +1103,7 @@ export default function AddDiscount() {
       //  return;
       //  console.log('hardcode->>>>>>',_newDiscount)
       const response = await axios.post(
-        "http://localhost:4000/add-discount-code",
+        "https://middleware-discountapp.mean3.ae/add-discount-code",
         newDiscount,
         {
           headers: {
@@ -1326,7 +1329,6 @@ export default function AddDiscount() {
     // }
   };
 
-  console.log("selected ids", productIds);
   function titleCase(string) {
     return string
       .toLowerCase()
@@ -1473,12 +1475,6 @@ export default function AddDiscount() {
     },
     []
   );
-  console.log(
-    "product ids ->>>>>>",
-    customerIds,
-    "selected tags",
-    _selectedTags
-  );
   console.log("katjas", _options);
   const tagMarkup = selectedTags.map((option) => (
     <LegacyCard key={option}>
@@ -1492,7 +1488,6 @@ export default function AddDiscount() {
   ));
 
   const handleRandomCodeGenerate = () => {
-    const prefix = "CC_";
     const length = 10; // Length of the random part
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; // Allowed characters for the random part
 
@@ -1504,82 +1499,28 @@ export default function AddDiscount() {
     }
 
     // Create the final discount code
-    const discountCode = `${prefix}${randomPart}`;
+    const discountCode = `${randomPart}`;
 
     // Set the discount code state
     setNewDiscountCode(discountCode);
   };
-  const listItemStyle = {
-    position: "relative",
-    paddingLeft: "1.5em", // Adjust space for custom bullet
-  };
-
-  // const bulletStyle = {
-  //   // content: "•", // Custom bullet character
-  //   color: "gray", // Change bullet color
-  //   fontSize: "0.3em", // Change bullet size
-  //   position: "absolute",
-  //   left: 0,
-  //   top: 0,
-  //   fontWeight: "bold", // Optionally adjust weight
-  // };
-
-  console.log(
-    "checkingggg.......",
-    checkselected === "SC" &&
-      selectedOptions.length > 0 &&
-      selectedTags.length > 0
-  );
+  // console.log(
+  //   "checkingggg.......",
+  //   checkselected === "SC" &&
+  //     selectedOptions.length > 0 &&
+  //     selectedTags.length > 0
+  // );
   return (
-    <Page fullWidth>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          flexDirection: "row",
-          gap: "10px",
-          marginBottom: "20px",
-          borderColor: "transparent",
-        }}
-      >
-        <button
-          onClick={() => navigate("/")}
-          style={{
-            // boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            // backgroundColor: "rgba(74, 74, 74, 0.2)",
-            cursor: "default", // Default cursor
-
-            backgroundColor: "transparent", // No initial background color
-            padding: "4px",
-            borderRadius: "5px",
-            borderColor: "transparent",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "rgba(74, 74, 74, 0.2)"; // Change background on hover
-            e.currentTarget.style.cursor = "pointer"; // Change cursor to pointer on hover
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent"; // Reset background on mouse leave
-            e.currentTarget.style.cursor = "default"; // Reset cursor on mouse leave
-          }}
-        >
-          <Icon source={ArrowLeftMinor} />
-        </button>
-
-        {/* <Text alignment="start" variant="headingXl" as="h5">
-          Add Discount
-        </Text> */}
-        <Text variant="headingXl" as="h5">
-          Add Discount
-        </Text>
-      </div>
+    <Page
+      backAction={{ content: "Settings", url: "/" }}
+      title="Create Discount"
+    >
       <div
         style={{
           display: "flex",
           flexDirection: "row",
           width: "100%",
-          gap: "10px",
+          gap: "20px",
         }}
       >
         {/* main */}
@@ -1599,6 +1540,7 @@ export default function AddDiscount() {
           {/* first card */}
           <div
             style={{
+              marginBottom: 5,
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1675,6 +1617,8 @@ export default function AddDiscount() {
           {/* second card */}
           <div
             style={{
+              marginBottom: 5,
+
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1834,6 +1778,8 @@ export default function AddDiscount() {
           {/* third card */}
           <div
             style={{
+              marginBottom: 5,
+
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1893,6 +1839,8 @@ export default function AddDiscount() {
           {/* fourth card */}
           <div
             style={{
+              marginBottom: 5,
+
               marginTop: 110,
               // marginTop: 110,
               padding: 10,
@@ -1930,7 +1878,7 @@ export default function AddDiscount() {
                 variant="group"
                 choices={[
                   { label: "All customers", value: "all" },
-                  { label: "Specific customer segments", value: "SCS" },
+                  // { label: "Specific customer segments", value: "SCS" },
                   { label: "Specific customers", value: "SC" },
                 ]}
                 selected={selected}
@@ -1962,6 +1910,8 @@ export default function AddDiscount() {
           {/* fifth card */}
           <div
             style={{
+              marginBottom: 5,
+
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -2013,6 +1963,8 @@ export default function AddDiscount() {
           {/* sixth card */}
           <div
             style={{
+              marginBottom: 5,
+
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -2119,6 +2071,7 @@ export default function AddDiscount() {
         <div
           style={{
             width: "30%",
+            height: "40%",
             // flex: 1,
             padding: 10,
             borderColor: "#FFFFFF",
@@ -2134,10 +2087,11 @@ export default function AddDiscount() {
           <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
             Summary
           </span>
+
           <div
             style={{
               marginTop: 10,
-              marginBottom: 10,
+              marginBottom: 20,
               fontSize: "12px",
               color: "gray",
               fontWeight: "500",
@@ -2198,6 +2152,7 @@ export default function AddDiscount() {
       <div
         style={{
           marginTop: 15,
+          marginBottom: 15,
           display: "flex",
           justifyContent: "flex-end",
           gap: "10px",

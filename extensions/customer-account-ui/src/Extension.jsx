@@ -80,11 +80,13 @@ function Extension() {
   const fetchDiscounts = async (isPaginate = null) => {
     try {
       setLoading(true);
-      let apiUrl = "http://localhost:4000/get-discounts?limit=50";
+      let apiUrl =
+        "https://middleware-discountapp.mean3.ae/get-discounts?limit=50";
       if (isPaginate) {
         apiUrl += `&page=${isPaginate}`;
       } else {
-        apiUrl = "http://localhost:4000/get-discounts?limit=50";
+        apiUrl =
+          "https://middleware-discountapp.mean3.ae/get-discounts?limit=50";
       }
       console.log(
         "check function gets accurate page info?",
@@ -133,11 +135,11 @@ function Extension() {
   };
   const fetchCustomers = async (isPaginate = null) => {
     try {
-      let apiUrl = "http://localhost:4000/get-customers";
+      let apiUrl = "https://middleware-discountapp.mean3.ae/get-customers";
       // if (isPaginate) {
       //   apiUrl += `&page=${isPaginate}`;
       // } else {
-      //   apiUrl = "http://localhost:4000/get-customers";
+      //   apiUrl = "https://middleware-discountapp.mean3.ae/get-customers";
       // }
       // console.log(
       //   "check function gets accurate page info?",
@@ -210,7 +212,7 @@ function Extension() {
     for (let i = 0; i < _collection.length; i++) {
       console.log("Processing collection ID:", _collection[i]);
 
-      const apiUrl = `http://localhost:4000/get-products?isCollection=${_collection[i]}`;
+      const apiUrl = `https://middleware-discountapp.mean3.ae/get-products?isCollection=${_collection[i]}`;
 
       try {
         const response = await axios.get(apiUrl, {
@@ -245,14 +247,14 @@ function Extension() {
 
   const handleGetDiscountDetails = async (input) => {
     const isCollection = input.entitled_product_ids.length > 0 ? false : true;
-    let apiUrl = "http://localhost:4000/get-products";
+    let apiUrl = "https://middleware-discountapp.mean3.ae/get-products";
 
     try {
       if (isCollection) {
         // // console.log("ids seamlessly getted", input.entitled_collection_ids);
         // for (input.entitled_collection_ids in _collection) {
         //   console.log("ids seamlessly getted", _collection);
-        //   apiUrl = `http://localhost:4000/get-products?isCollection=${_collection}`;
+        //   apiUrl = `https://middleware-discountapp.mean3.ae/get-products?isCollection=${_collection}`;
         //   const response = await axios.get(apiUrl, {
         //     headers: {
         //       "api-key": "Do2j^jF",
