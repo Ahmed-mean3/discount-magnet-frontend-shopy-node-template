@@ -127,6 +127,12 @@ app.get("/api/customers/all", async (_req, res) => {
   });
   res.status(200).send(customersData);
 });
+app.get("/api/prod", async (_req, res) => {
+  const prodData = await shopify.api.rest.Product.all({
+    session: res.locals.shopify.session,
+  });
+  res.status(200).send(prodData);
+});
 
 app.post("/api/products", async (_req, res) => {
   let status = 200;

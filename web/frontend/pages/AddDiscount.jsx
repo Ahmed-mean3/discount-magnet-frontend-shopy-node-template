@@ -1013,7 +1013,8 @@ export default function AddDiscount() {
           target_type: "line_item",
           target_selection: "entitled",
           allocation_method:
-            minRequirementCheckselected === "MPA" || minRequirementCheckselected === "MQI"
+            minRequirementCheckselected === "MPA" ||
+            minRequirementCheckselected === "MQI"
               ? "each"
               : "across",
           value_type: valueType,
@@ -1022,14 +1023,14 @@ export default function AddDiscount() {
             checkselected === "SC" || checkselected === "SCS"
               ? "prerequisite"
               : "all",
-          
+
           // Ensure at least one entitlement is provided
           ...(prodIds && prodIds.length > 0
             ? appliesTo === "specific_collection"
               ? { entitled_collection_ids: prodIds } // Collections entitlement
               : { entitled_product_ids: prodIds } // Products entitlement
             : {}),
-      
+
           starts_at:
             extractDate(selectedDate) === new Date().toDateString()
               ? handleDateChange(new Date(), true)
@@ -1041,36 +1042,38 @@ export default function AddDiscount() {
             : selectedDateEnd && endAtTime
             ? selectedDateEnd + ":" + endAtTime
             : null,
-          
+
           // Add prerequisite_customer_ids if applicable
-          ...(checkselected === "SC" || checkselected === "SCS" && customerIds.length > 0
+          ...(checkselected === "SC" ||
+          (checkselected === "SCS" && customerIds.length > 0)
             ? { prerequisite_customer_ids: customerIds }
             : {}),
-      
+
           usage_limit: usageLimitValue,
           once_per_customer: !!oneUserPerCustomerchecked,
-      
+
           // Conditionally add prerequisite if minRequirementCheckselected is "MPA"
-          ...(minRequirementCheckselected === "MPA" && minPurchaseReq && {
-            prerequisite_subtotal_range: {
-              greater_than_or_equal_to: minPurchaseReq,
-            },
-          }),
-      
+          ...(minRequirementCheckselected === "MPA" &&
+            minPurchaseReq && {
+              prerequisite_subtotal_range: {
+                greater_than_or_equal_to: minPurchaseReq,
+              },
+            }),
+
           // Conditionally add prerequisite if minRequirementCheckselected is "MQI"
-          ...(minRequirementCheckselected === "MQI" && minQuantityReq && {
-            prerequisite_to_entitlement_quantity_ratio: {
-              prerequisite_quantity: minQuantityReq,
-              entitled_quantity: 1,
-            },
-            prerequisite_product_ids: prodIds, // Only add when MQI is selected
-          }),
+          ...(minRequirementCheckselected === "MQI" &&
+            minQuantityReq && {
+              prerequisite_to_entitlement_quantity_ratio: {
+                prerequisite_quantity: minQuantityReq,
+                entitled_quantity: 1,
+              },
+              prerequisite_product_ids: prodIds, // Only add when MQI is selected
+            }),
         },
         discount_code: newDiscountCode,
         discount_type: "product",
       };
-      
-      
+
       console.log(
         "payloardCheckup...",
         newDiscount,
@@ -1230,10 +1233,59 @@ export default function AddDiscount() {
       ? [{ label: "Percentage", value: "percentage" }]
       : AppliesToOptions;
 
+  // const handleFetchPopulate = async () => {
+  //   setIsLoading(true);
+
+  //   await fetch("api/products/all", { method: "GET" })
+  //     .then((response) => {
+  //       if (!response.ok) {
+  //         throw new Error(`HTTP error! status: ${response.status}`);
+  //       }
+  //       return response.json(); // Assuming the response is in JSON format
+  //     })
+  //     .then((data) => {
+  //       // console.log(data.data); // This will log the fetched products
+  //       // You can now use the 'data' variable to access your fetched products
+  //       // Mapping the products data to the desired format
+  //       console.log("Fetched Products:", data); // Debugging line
+
+  //       const formattedProducts = data.data.map((product) => ({
+  //         label: product.title,
+  //         value: product.id,
+  //       }));
+  //       // console.log("Fetched Products:", formattedProducts); // Debugging line
+  //       // const deselectedOptions = useMemo(() => formattedProducts, []);
+  //       // console.log(formattedProducts);
+  //       setProductOptions(formattedProducts);
+  //       setIsLoading(false);
+  //     })
+  //     .catch((error) => {
+  //       setIsLoading(false);
+  //       console.error("There was an error fetching the products:", error);
+  //     });
+
+  //   // if (response.ok) {
+  //   //   console.log("fetched products......", response.json());
+  //   //   // await refetchProductCount();
+  //   //   // setToastProps({
+  //   //   //   content: t("ProductsCard.productsCreatedToast", {
+  //   //   //     count: productsCount,
+  //   //   //   }),
+  //   //   // });
+  //   // } else {
+  //   //   console.log("fetched products......", response);
+
+  //   //   setIsLoading(false);
+  //   //   // setToastProps({
+  //   //   //   content: t("ProductsCard.errorCreatingProductsToast"),
+  //   //   //   error: true,
+  //   //   // });
+  //   // }
+  // };
   const handleFetchPopulate = async () => {
     setIsLoading(true);
 
-    await fetch("api/products/all", { method: "GET" })
+    await fetch("api/prod", { method: "GET" })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1244,13 +1296,14 @@ export default function AddDiscount() {
         // console.log(data.data); // This will log the fetched products
         // You can now use the 'data' variable to access your fetched products
         // Mapping the products data to the desired format
-        console.log("Fetched Products:", data); // Debugging line
 
+        console.log("Fetched price rules:", data); // Debugging line
+        // return;
         const formattedProducts = data.data.map((product) => ({
           label: product.title,
           value: product.id,
         }));
-        // console.log("Fetched Products:", formattedProducts); // Debugging line
+        // console.log("Fetched price rules:", data); // Debugging line
         // const deselectedOptions = useMemo(() => formattedProducts, []);
         // console.log(formattedProducts);
         setProductOptions(formattedProducts);
