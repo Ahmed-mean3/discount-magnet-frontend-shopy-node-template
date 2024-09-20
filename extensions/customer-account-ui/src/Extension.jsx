@@ -10,6 +10,8 @@ import {
   useAuthenticatedAccountCustomer,
 } from "@shopify/ui-extensions-react/customer-account";
 import { useEffect, useState } from "react";
+import { CopyToClipboard } from "react-copy-to-clipboard";
+
 import axios from "axios";
 import {
   Badge,
@@ -27,7 +29,10 @@ import {
   InlineSpacer,
   ScrollView,
   Icon,
+  Grid,
+  TextField,
 } from "@shopify/ui-extensions-react/checkout";
+import copy from "copy-to-clipboard";
 export default reactExtension(
   "customer-account.order-index.block.render",
   () => <Extension />
@@ -297,6 +302,22 @@ function Extension() {
       console.error("Error getting products", error);
     }
   };
+  const handleCopy = async (textToCopy) => {
+    if (!navigator.clipboard) {
+      console.error("Clipboard API is not supported.");
+      return;
+    }
+
+    try {
+      // console.log("copied", textToCopy);
+      // return;
+      await navigator.clipboard.writeText(textToCopy);
+      // setShowToast(true);
+      console.log("copied");
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
 
   useEffect(() => {
     // fetchShowDetails();
@@ -313,226 +334,203 @@ function Extension() {
       <Text emphasis="bold" size="large" as="h1">
         Store-wide discounts
       </Text>
-      <Card roundedAbove="sm" padding="tight">
+      <Grid
+        columns={["auto", "auto", "auto", "auto"]}
+        // rows={[300, 300]}
+        spacing="loose"
+      >
+        {/* <Box roundedAbove="sm" padding="tight"> */}
         {loading ? (
           <Spinner accessibilityLabel="Loading Discounts" size="small" />
         ) : discountCodes.length > 0 ? (
           discountCodes.map((discount, index) => (
-            <List key={index}>
-              <ListItem>
-                <InlineStack
+            <Card roundedAbove="sm" key={index}>
+              <View border="none" padding="base" style={{ overflow: "hidden" }}>
+                <BlockStack
+                  display="inline"
+                  // flexDirection="column"
                   spacing="extraTight"
-                  gap="400"
-                  wrap={false}
-                  alignment="center"
+                  // padding="loose"
                 >
-                  <Button
-                    onPress={() =>
-                      handleGetDiscountDetails(discount.priceRuleDetails)
-                    }
-                    overlay={
-                      <Modal
-                        id="my-modal"
-                        padding
-                        title={`Discount Associated ${
-                          discount.priceRuleDetails.entitled_product_ids
-                            .length > 0
-                            ? "Products"
-                            : "Collections"
-                        }`}
-                      >
-                        {discount.priceRuleDetails.entitled_product_ids.length >
-                        0 //add seperate collection ui after saving into sepereate state of api calls data.
-                          ? userDiscountProducts.map((product) => (
-                              <>
-                                <View
-                                  padding="base"
-                                  border="base"
-                                  borderRadius="large"
-                                >
-                                  <InlineStack
-                                    blockAlignment="center"
-                                    spacing="tight"
-                                  >
-                                    <Image
-                                      borderRadius="large"
-                                      source={
-                                        product.image
-                                          ? `${product.image.src}?width=50&height=50`
-                                          : "https://via.placeholder.com/50x50?text=No Image"
-                                      }
-                                      fit="contain"
-                                    />
-                                    <BlockStack
-                                      display="inline"
-                                      // flexDirection="column"
-                                      spacing="extraTight"
-                                      // padding="loose"
-                                    >
-                                      <Text emphasis="bold">
-                                        {product.title}
-                                      </Text>
-                                      <Text
-                                        emphasis="bold"
-                                        appearance="success"
-                                      >
-                                        ${product?.variants[0]?.price}
-                                      </Text>
-                                    </BlockStack>
-                                  </InlineStack>
-                                </View>
-                                <InlineSpacer spacing="loose" />
-                              </>
-                            ))
-                          : userDiscountCollection.map((collection) => (
-                              <View
-                                key={collection.id}
-                                padding="base"
-                                border="base"
-                                borderRadius="large"
-                              >
-                                <InlineStack
-                                  blockAlignment="center"
-                                  spacing="tight"
-                                >
-                                  <Image
-                                    borderRadius="large"
-                                    source={
-                                      collection.image
-                                        ? `${collection.image.src}?width=50&height=50`
-                                        : "https://via.placeholder.com/50x50?text=No Image"
-                                    }
-                                    fit="contain"
-                                  />
-                                  <BlockStack
-                                    display="inline"
-                                    // flexDirection="column"
-                                    spacing="extraTight"
-                                    // padding="loose"
-                                  >
-                                    <Text emphasis="bold">
-                                      {collection.title}
-                                    </Text>
-                                    <Text emphasis="bold" appearance="subdued">
-                                      {collection.products_count} products
-                                    </Text>
-                                  </BlockStack>
-                                </InlineStack>
-                              </View>
-                            ))}
-                      </Modal>
-                    }
-                    // onPress={() => setIsModalOpen(true)}
-                    kind="tertiary"
-                    appearance="accent"
-                  >
-                    <View
-                      border="none"
-                      padding="base"
-                      style={{ overflow: "hidden" }}
+                  <InlineStack blockAlignment="center">
+                    <Text emphasis="bold">{discount.code}</Text>
+                    <Button
+                      onPress={() => {
+                        var textArea = document.createElement("textarea");
+                        textArea.value = "anc";
+                        // Avoid scrolling to bottom
+                        textArea.style.top = "0";
+                        textArea.style.left = "0";
+                        textArea.style.position = "fixed";
+
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+
+                        try {
+                          var successful = document.execCommand("copy");
+                          console.log(
+                            "Copying text command was " +
+                              (successful ? "successful" : "unsuccessful")
+                          );
+                        } catch (err) {
+                          console.error("Fallback: Oops, unable to copy", err);
+                        }
+
+                        document.body.removeChild(textArea);
+                      }}
+                      inlineAlignment="start"
+                      kind="tertiary"
+                      appearance="accent"
                     >
-                      <Text as="h2" variant="headingMd" fontWeight="bold">
-                        use{" "}
-                      </Text>
-                      {/* <Tag className="badge" icon="discount">
+                      <Icon
+                        source="note"
+                        accessibilityLabel="Copy to clipboard"
+                      />
+                    </Button>
+                  </InlineStack>
+                  {/* <BlockSpacer spacing="base" /> */}
+                  <Text emphasis="bold">Type and method</Text>
+                  {/* <BlockSpacer spacing="base" /> */}
+                  <List>
+                    <ListItem>
+                      {discount.priceRuleDetails?.target_type ===
+                      "shipping_line"
+                        ? "Free Shipping"
+                        : discount.priceRuleDetails
+                            ?.prerequisite_to_entitlement_quantity_ratio
+                            ?.prerequisite_quantity > 0 &&
+                          discount.priceRuleDetails
+                            ?.prerequisite_to_entitlement_quantity_ratio
+                            ?.entitled_quantity > 0
+                        ? "BuyXGetY Free"
+                        : discount.priceRuleDetails?.entitled_collection_ids
+                            ?.length === 0 &&
+                          discount.priceRuleDetails?.entitled_product_ids
+                            ?.length === 0 &&
+                          discount.priceRuleDetails?.value_type ===
+                            "fixed_amount"
+                        ? "X$ off an order"
+                        : "Amount off products"}
+                    </ListItem>
+                    <ListItem>Code</ListItem>
+                  </List>
+                  {/* <BlockSpacer spacing="base" /> */}
+                  <Text emphasis="bold">Details</Text>
+                  {/* <BlockSpacer spacing="base" /> */}
+                  <List>
+                    <ListItem>For Online Store</ListItem>
+                    <ListItem>
                       {" "}
-                      {discount.code}
-                    </Tag> */}
-                      <Badge
-                        style={{
-                          whiteSpace: "normal", // Allow text to wrap
-                          overflow: "visible", // Ensure overflow text is visible
-                          textOverflow: "clip", // Clip overflow text (default behavior)
-                          display: "block", // Ensure block display for wrapping
-                          maxWidth: "100%", // Ensure the badge can shrink if needed
-                        }}
-                        icon="discount"
-                        status="success"
+                      <Button
+                        inlineAlignment="start"
+                        onPress={() =>
+                          handleGetDiscountDetails(discount.priceRuleDetails)
+                        }
+                        overlay={
+                          <Modal
+                            id="my-modal"
+                            padding
+                            title={`Discount Associated ${
+                              discount.priceRuleDetails.entitled_product_ids
+                                .length > 0
+                                ? "Products"
+                                : "Collections"
+                            }`}
+                          >
+                            {discount.priceRuleDetails.entitled_product_ids
+                              .length > 0 //add seperate collection ui after saving into sepereate state of api calls data.
+                              ? userDiscountProducts.map((product) => (
+                                  <>
+                                    <View
+                                      padding="base"
+                                      border="base"
+                                      borderRadius="large"
+                                    >
+                                      <InlineStack
+                                        blockAlignment="center"
+                                        spacing="tight"
+                                      >
+                                        <Image
+                                          borderRadius="large"
+                                          source={
+                                            product.image
+                                              ? `${product.image.src}?width=50&height=50`
+                                              : "https://via.placeholder.com/50x50?text=No Image"
+                                          }
+                                          fit="contain"
+                                        />
+                                        <BlockStack
+                                          display="inline"
+                                          // flexDirection="column"
+                                          spacing="extraTight"
+                                          // padding="loose"
+                                        >
+                                          <Text emphasis="bold">
+                                            {product.title}
+                                          </Text>
+                                          <Text
+                                            emphasis="bold"
+                                            appearance="success"
+                                          >
+                                            ${product?.variants[0]?.price}
+                                          </Text>
+                                        </BlockStack>
+                                      </InlineStack>
+                                    </View>
+                                    <InlineSpacer spacing="loose" />
+                                  </>
+                                ))
+                              : userDiscountCollection.map((collection) => (
+                                  <View
+                                    key={collection.id}
+                                    padding="base"
+                                    border="base"
+                                    borderRadius="large"
+                                  >
+                                    <InlineStack
+                                      blockAlignment="center"
+                                      spacing="tight"
+                                    >
+                                      <Image
+                                        borderRadius="large"
+                                        source={
+                                          collection.image
+                                            ? `${collection.image.src}?width=50&height=50`
+                                            : "https://via.placeholder.com/50x50?text=No Image"
+                                        }
+                                        fit="contain"
+                                      />
+                                      <BlockStack
+                                        display="inline"
+                                        // flexDirection="column"
+                                        spacing="extraTight"
+                                        // padding="loose"
+                                      >
+                                        <Text emphasis="bold">
+                                          {collection.title}
+                                        </Text>
+                                        <Text
+                                          emphasis="bold"
+                                          appearance="subdued"
+                                        >
+                                          {collection.products_count} products
+                                        </Text>
+                                      </BlockStack>
+                                    </InlineStack>
+                                  </View>
+                                ))}
+                          </Modal>
+                        }
+                        kind="tertiary"
+                        appearance="accent"
                       >
-                        {discount.code}
-                      </Badge>
-                      {discount.priceRuleDetails?.entitled_collection_ids
-                        ?.length === 0 &&
-                      discount.priceRuleDetails?.entitled_product_ids
-                        ?.length === 0 &&
-                      discount.priceRuleDetails?.value_type ===
-                        "fixed_amount" ? (
-                        <Text
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          as="h2"
-                          variant="headingMd"
-                          fontWeight="bold"
-                        >
-                          {" "}
-                          and avail -$
-                          {Math.abs(
-                            Math.round(
-                              parseFloat(discount.priceRuleDetails?.value ?? 0)
-                            )
-                          )}{" "}
-                          off an order
-                        </Text>
-                      ) : discount.priceRuleDetails?.target_type ===
-                          "shipping_line" &&
-                        discount.priceRuleDetails
-                          ?.prerequisite_subtotal_range &&
-                        !discount.priceRuleDetails
-                          ?.prerequisite_shipping_price_range
-                          ?.greater_than_or_equal_to ? (
-                        <Text
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {" "}
-                          and avail Free Shipping over order of $
-                          {Math.round(
-                            parseFloat(
-                              discount.priceRuleDetails
-                                ?.prerequisite_subtotal_range
-                                ?.greater_than_or_equal_to ?? 0
-                            )
-                          )}
-                        </Text>
-                      ) : discount.priceRuleDetails
-                          ?.prerequisite_to_entitlement_quantity_ratio
-                          ?.prerequisite_quantity > 0 &&
-                        discount.priceRuleDetails
-                          ?.prerequisite_to_entitlement_quantity_ratio
-                          ?.entitled_quantity > 0 ? (
-                        <Text
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          as="h2"
-                          variant="headingMd"
-                          fontWeight="bold"
-                        >
-                          and get Buy{" "}
-                          {
-                            discount.priceRuleDetails
-                              ?.prerequisite_to_entitlement_quantity_ratio
-                              ?.prerequisite_quantity
-                          }{" "}
-                          Get{" "}
-                          {
-                            discount.priceRuleDetails
-                              ?.prerequisite_to_entitlement_quantity_ratio
-                              ?.entitled_quantity
-                          }{" "}
-                          free offer
-                        </Text>
-                      ) : discount.priceRuleDetails?.prerequisite_product_ids ||
-                        discount.priceRuleDetails?.entitled_product_ids ? (
-                        <>
+                        {discount.priceRuleDetails?.entitled_collection_ids
+                          ?.length === 0 &&
+                        discount.priceRuleDetails?.entitled_product_ids
+                          ?.length === 0 &&
+                        discount.priceRuleDetails?.value_type ===
+                          "fixed_amount" ? (
                           <Text
                             style={{
                               whiteSpace: "nowrap",
@@ -543,9 +541,79 @@ function Extension() {
                             variant="headingMd"
                             fontWeight="bold"
                           >
-                            {" "}
-                            and avail{" "}
+                            avail -$
+                            {Math.abs(
+                              Math.round(
+                                parseFloat(
+                                  discount.priceRuleDetails?.value ?? 0
+                                )
+                              )
+                            )}{" "}
+                            off an order
                           </Text>
+                        ) : discount.priceRuleDetails?.target_type ===
+                            "shipping_line" &&
+                          discount.priceRuleDetails
+                            ?.prerequisite_subtotal_range &&
+                          !discount.priceRuleDetails
+                            ?.prerequisite_shipping_price_range
+                            ?.greater_than_or_equal_to ? (
+                          <Text
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            Minimum purchase of $
+                            {Math.round(
+                              parseFloat(
+                                discount.priceRuleDetails
+                                  ?.prerequisite_subtotal_range
+                                  ?.greater_than_or_equal_to ?? 0
+                              )
+                            )}
+                          </Text>
+                        ) : discount.priceRuleDetails?.target_type ===
+                            "shipping_line" &&
+                          !discount.priceRuleDetails.prerequisite_subtotal_range
+                            ?.greater_than_or_equal_to ? (
+                          `No minimum purchase requirement`
+                        ) : discount.priceRuleDetails
+                            ?.prerequisite_to_entitlement_quantity_ratio
+                            ?.prerequisite_quantity > 0 &&
+                          discount.priceRuleDetails
+                            ?.prerequisite_to_entitlement_quantity_ratio
+                            ?.entitled_quantity > 0 ? (
+                          <Text
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                            as="h2"
+                            variant="headingMd"
+                            fontWeight="bold"
+                          >
+                            and get Buy{" "}
+                            {
+                              discount.priceRuleDetails
+                                ?.prerequisite_to_entitlement_quantity_ratio
+                                ?.prerequisite_quantity
+                            }{" "}
+                            Get{" "}
+                            {
+                              discount.priceRuleDetails
+                                ?.prerequisite_to_entitlement_quantity_ratio
+                                ?.entitled_quantity
+                            }{" "}
+                            free offer
+                          </Text>
+                        ) : discount.priceRuleDetails
+                            ?.prerequisite_product_ids ||
+                          (discount.priceRuleDetails?.entitled_product_ids &&
+                            discount.priceRuleDetails?.target_type !==
+                              "shipping_line") ? (
                           <Text
                             style={{
                               whiteSpace: "nowrap",
@@ -555,29 +623,55 @@ function Extension() {
                             as="p"
                             fontWeight="regular"
                           >
+                            {!(
+                              discount.priceRuleDetails?.target_type ===
+                                "shipping_line" &&
+                              !discount.priceRuleDetails
+                                .prerequisite_subtotal_range
+                                ?.greater_than_or_equal_to
+                            ) && "avail off"}
                             {discount.priceRuleDetails?.value_type !==
-                              "percentage" && "$"}
-                            {Math.abs(
-                              Math.round(
-                                parseFloat(
-                                  discount.priceRuleDetails?.value ?? 0
+                              "percentage" &&
+                            !(
+                              discount.priceRuleDetails?.target_type ===
+                                "shipping_line" &&
+                              !discount.priceRuleDetails
+                                .prerequisite_subtotal_range
+                                ?.greater_than_or_equal_to
+                            )
+                              ? " $"
+                              : " "}
+                            {!(
+                              discount.priceRuleDetails?.target_type ===
+                                "shipping_line" &&
+                              !discount.priceRuleDetails
+                                .prerequisite_subtotal_range
+                                ?.greater_than_or_equal_to
+                            ) &&
+                              Math.abs(
+                                Math.round(
+                                  parseFloat(
+                                    discount.priceRuleDetails?.value ?? 0
+                                  )
                                 )
-                              )
-                            )}
-                            {discount.priceRuleDetails?.value_type !==
-                              "fixed_amount" && "%"}{" "}
-                            off{" "}
-                          </Text>
-                          <Text
-                            style={{
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                            as="h2"
-                            variant="headingMd"
-                            fontWeight="bold"
-                          >
+                              )}
+                            {!(
+                              discount.priceRuleDetails?.target_type ===
+                                "shipping_line" &&
+                              !discount.priceRuleDetails
+                                .prerequisite_subtotal_range
+                                ?.greater_than_or_equal_to
+                            ) &&
+                              discount.priceRuleDetails?.value_type !==
+                                "fixed_amount" &&
+                              "%"}{" "}
+                            {!(
+                              discount.priceRuleDetails?.target_type ===
+                                "shipping_line" &&
+                              !discount.priceRuleDetails
+                                .prerequisite_subtotal_range
+                                ?.greater_than_or_equal_to
+                            ) && `avail off${" "}`}
                             {discount.priceRuleDetails?.prerequisite_product_ids
                               ?.length > 0 ||
                             discount.priceRuleDetails?.entitled_product_ids
@@ -593,7 +687,7 @@ function Extension() {
                                 }`
                               : discount.priceRuleDetails
                                   ?.entitled_collection_ids?.length > 0
-                              ? `${
+                              ? ` ${
                                   discount.priceRuleDetails
                                     ?.entitled_collection_ids?.length
                                 } Collection${
@@ -604,18 +698,21 @@ function Extension() {
                                 }`
                               : "Discount format or type needs to adjust????"}
                           </Text>
-                        </>
-                      ) : null}
-                    </View>
-                  </Button>
-                </InlineStack>
-              </ListItem>
-            </List>
+                        ) : null}
+                      </Button>
+                    </ListItem>
+                  </List>
+                </BlockStack>
+              </View>
+            </Card>
           ))
         ) : (
           <Text>No discounts available</Text>
         )}
-      </Card>
+      </Grid>
+
+      {/* </Box> */}
+      {/* Pagination bars */}
       <View inlineAlignment="center">
         <InlineStack>
           <Button

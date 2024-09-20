@@ -23,7 +23,7 @@ import {
   HorizontalStack,
 } from "@shopify/polaris";
 import { useAppQuery, useAuthenticatedFetch } from "../hooks";
-import { SearchMajor } from "@shopify/polaris-icons";
+import { ChevronRightMinor, SearchMajor } from "@shopify/polaris-icons";
 
 import axios from "axios";
 import { NavLink, useLocation } from "react-router-dom";
@@ -835,8 +835,8 @@ export function ProductsCard() {
               autoComplete="off"
             />
             <Button
-              onClick={() => navigate("/AddDiscount")}
-              // onClick={() => setIsModalOpen(true)}
+              // onClick={() => navigate("/AddDiscount")}
+              onClick={() => setIsModalOpen(true)}
             >
               Create Discount
             </Button>
@@ -870,63 +870,105 @@ export function ProductsCard() {
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Select discount type"
+        secondaryActions={[
+          {
+            content: "Cancel",
+            onAction: () => setIsModalOpen(false),
+          },
+        ]}
       >
-        <Modal.Section>
-          {[
-            {
-              id: 1,
-              name: "Amount off products",
-              description:
-                "Discount specific products or collections of products.",
-              tagValue: "Product discount",
-            },
-            {
-              id: 2,
-              name: "Buy X get Y",
-              description: "Discount products based on customer's purchase.",
-              tagValue: "Product discount",
-            },
-            {
-              id: 3,
-              name: "Amount off order",
-              description: "Discount the total order amount.",
-              tagValue: "Order discount",
-            },
-            {
-              id: 4,
-              name: "Free shipping",
-              description: "Offer free shipping on an order.",
-              tagValue: "Shipping discount",
-            },
-          ].map((discount) => (
-            // main card
+        {/* <Modal.Section> */}
+        {[
+          {
+            id: 1,
+            name: "Amount off products",
+            description:
+              "Discount specific products or collections of products.",
+            tagValue: "Product discount",
+            nav: "AddDiscount",
+          },
+          {
+            id: 2,
+            name: "Buy X get Y",
+            description: "Discount products based on customer's purchase.",
+            tagValue: "Product discount",
+          },
+          {
+            id: 3,
+            name: "Amount off order",
+            description: "Discount the total order amount.",
+            tagValue: "Order discount",
+          },
+          {
+            id: 4,
+            name: "Free shipping",
+            description: "Offer free shipping on an order.",
+            tagValue: "Shipping discount",
+            nav: "AddDiscountShipping",
+          },
+        ].map((discount) => (
+          // main card
+          <button
+            onMouseEnter={(e) => {
+              // e.currentTarget.style.backgroundColor = "rgba(74, 74, 74, 0.2)"; // Change background on hover
+              e.currentTarget.style.cursor = "pointer"; // Change cursor to pointer on hover
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent"; // Reset background on mouse leave
+              e.currentTarget.style.cursor = "default"; // Reset cursor on mouse leave
+            }}
+            onClick={() => navigate(`/${discount.nav}`)}
+            style={{
+              backgroundColor: "transparent",
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 10,
+              marginBottom: 10,
+              borderTop: 0,
+              borderLeft: 0,
+              borderRight: 0,
+              borderBottom: discount.id === 4 ? 0 : "1px solid #676F7A", // Add borderBottom
+              // marginRight: "-20px", // Extends the border to the left
+              // marginRight: -39, // Extends the border to the right
+              // paddingLeft: "20px", // Optional: Adds padding so content stays aligned
+              // paddingRight: "-80px",
+              paddingBottom: 12,
+              padding: 10,
+              flexWrap: "wrap",
+              overflow: "hidden", // Hides the scrollbar
+              gap: "5px",
+            }}
+            key={discount.id}
+          >
+            <div>
+              {/* Adjust width here */}
+              <Text alignment="start" variant="headingSm" as="h6">
+                {discount.name}
+              </Text>
+              <div style={{ marginTop: 5 }}>
+                <Text color="subdued" variant="headingXs" as="h6">
+                  {discount.description}
+                </Text>
+              </div>
+            </div>
             <div
               style={{
                 display: "flex",
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginTop: 10,
-                marginBottom: 10,
               }}
-              key={discount.id}
             >
-              <div>
-                <Text variant="headingSm" as="h6">
-                  {discount.name}
-                </Text>
-                <div style={{ marginTop: 5 }}>
-                  <Text color="subdued" variant="headingXs" as="h6">
-                    {discount.description}
-                  </Text>
-                </div>
-              </div>
-              <div>
-                <Badge>{discount.tagValue}</Badge>
-              </div>
+              <Badge>{discount.tagValue}</Badge>
+              <Icon color="subdued" source={ChevronRightMinor} />
             </div>
-          ))}
-        </Modal.Section>
+          </button>
+        ))}
+        {/* </Modal.Section> */}
       </Modal>
     </Page>
   );

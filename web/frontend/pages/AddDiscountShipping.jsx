@@ -43,9 +43,10 @@ import DatePickerMain from "../components/DatePicker";
 import { check } from "prettier";
 import { createApp } from "@shopify/app-bridge";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
+import DiscountCodeUI from "../components/DiscountCodeUI";
 // import { useNavigate } from "@shopify/app-bridge-react";
 
-export default function AddDiscount() {
+export default function AddDiscountShipping() {
   const navigate = useNavigate();
   const [filterValue, setFilterValue] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,6 +67,7 @@ export default function AddDiscount() {
   const [ProductOptions, setProductOptions] = useState([]);
   const [prodIds, setProdIds] = useState([]);
   const [customerIds, setCustomerIds] = useState([]);
+  const [countriesIds, setCountriesIds] = useState([]);
   const [value, setValue] = useState("");
   const [shippingDiscountValue, setShippingDiscountValue] = useState("");
   const [shippingError, setShippingError] = useState(false);
@@ -106,10 +108,21 @@ export default function AddDiscount() {
   const [minQuantityReqError, setMinQuantityReqError] = useState(false);
   const [oneUserPerCustomerchecked, setOneUserPerCustomerchecked] =
     useState(false);
+  const [excludeShippingRates, setExcludeShippingRates] = useState(false);
+  const [excludeShippingRatesValue, setExcludeShippingRatesValue] = useState(0);
+  const [excludeShippingRatesValueError, setExcludeShippingRatesValueError] =
+    useState(false);
   const fetch = useAuthenticatedFetch();
   const [minRequirementSelected, setMinRequirementSelected] = useState("NMR");
   const [selected, setSelected] = useState("all");
+  const [customerSelected, setCustomerSelected] = useState("all");
+  const [purchaseTypeSelected, setPurchaseTypeSelected] = useState("otp");
+  const [subscriptionProductsError, setSubscriptionProductsError] =
+    useState(false);
   const [checkselected, setCheckSelected] = useState("all");
+  const [checkCustomerSelected, setCheckCustomerSelected] = useState("all");
+  const [purhcaseTypeCheckselected, setPurhcaseTypeCheckSelected] =
+    useState("otp");
   const [minRequirementCheckselected, setMinRequirementCheckSelected] =
     useState("NMR");
   console.log("check selected", checkselected);
@@ -118,6 +131,7 @@ export default function AddDiscount() {
     (value) => setTextFieldValue(value),
     []
   );
+
   useEffect(() => {
     if (minRequirementCheckselected === "MPA") {
       setMinQuantityReq(0);
@@ -181,48 +195,25 @@ export default function AddDiscount() {
       minQuantityReqError,
     ]
   );
-  // useEffect(() => {
-  //   if (minRequirementCheckselected === "MPA") {
-  //     setMinQuantityReq(0);
-  //   } else if (minRequirementCheckselected === "MQI") {
-  //     setMinPurchaseReq(0);
-  //   }
-  // }, [minRequirementCheckselected, minQuantityReq, minPurchaseReq]);
-  // const _renderChildren = useCallback(
-  //   (_selected) =>
-  //     _selected ? (
-  //       <>
-  //         <div style={{ marginLeft: 27, width: "20%" }}>
-  //           <PolarisTextField
-  //             type="number"
-  //             label=""
-  //             value={minQuantityReq}
-  //             onChange={(value) => setMinQuantityReq(value)}
-  //             error={
-  //               minQuantityReqError ? "Minimum quantity value is required" : ""
-  //             }
-  //           />
-  //         </div>
-  //         <div
-  //           style={{
-  //             marginLeft: 25,
-  //             marginTop: 5,
-  //             fontSize: "13px",
-  //             color: "gray",
-  //             fontWeight: "500",
-  //           }}
-  //         >
-  //           Applies only to selected products.
-  //         </div>
-  //       </>
-  //     ) : null,
-  //   [minQuantityReq]
-  // );
-  const handleChangeCustomerSelection = useCallback((value) => {
+  const handleChangeCountriesSelection = useCallback((value) => {
     {
       const [_selected] = value;
       setCheckSelected(_selected);
       setSelected(value);
+    }
+  }, []);
+  const handleChangeCustomerSelection = useCallback((value) => {
+    {
+      const [_selected] = value;
+      setCheckCustomerSelected(_selected);
+      setCustomerSelected(value);
+    }
+  }, []);
+  const handleChangePurhcaseTypeSelection = useCallback((value) => {
+    {
+      const [_selected] = value;
+      setPurhcaseTypeCheckSelected(_selected);
+      setPurchaseTypeSelected(value);
     }
   }, []);
   const handleChangeMinRequirementSelection = useCallback((value) => {
@@ -244,6 +235,13 @@ export default function AddDiscount() {
   };
   const handleChangeoneUserPerCustomerChecked = (checked) => {
     setOneUserPerCustomerchecked((prev) => !prev);
+  };
+  const handleExcludeShippingRates = (checked) => {
+    setExcludeShippingRates((prev) => !prev);
+    if (!excludeShippingRates) {
+      setExcludeShippingRatesValue(0);
+      setExcludeShippingRatesValueError(false);
+    }
   };
   const toastMarkup = (message) =>
     active ? <Toast content={`${message}`} onDismiss={toggleActive} /> : null;
@@ -275,7 +273,9 @@ export default function AddDiscount() {
 
   const [_selectedTags, set_SelectedTags] = useState([]);
   const [checked, setChecked] = useState(false);
-  const [CustomerIdsError, setCustomerIdsError] = useState(false);
+  const [CustomerOptions, setCustomerOptions] = useState([]);
+  const [CountriesIdsError, setCountriesIdsError] = useState(false);
+  const [customerIdsError, setCustomerIdsError] = useState(false);
   const handleChangeCheckbox = useCallback(
     (newChecked) => setChecked(newChecked),
     []
@@ -308,73 +308,33 @@ export default function AddDiscount() {
     color: "black",
     fontWeight: "bold", // Make the bullet bolder
   };
-  // [appliesTo === "specific_collection" ? CollectionOptions : ProductOptions];
-  // const deselectedOptions = useMemo(
-  //   () =>
-  //     appliesTo === "specific_collection"
-  //       ? CollectionOptions.map((collection) => ({
-  //           value: collection.value,
-  //           label: collection.label,
-  //         }))
-  //       : ProductOptions.map((product) => ({
-  //           value: product.value,
-  //           label: product.label,
-  //         })),
-  //   [appliesTo, CollectionOptions, ProductOptions] // depend on appliesTo and options
-  // );
+
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [_selectedOptions, set_SelectedOptions] = useState([]);
-  const [CustomerOptions, setCustomerOptions] = useState([]);
+  const [CountriesOptions, setCountriesOptions] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [_inputValue, set_InputValue] = useState("");
   const [options, setOptions] = useState([]);
   const [_options, set_Options] = useState([]);
+  const [subscriptionProducts, setSubscriptionProducts] = useState([]);
+  const [oneTimePurchaseProducts, setOneTimePurchaseProducts] = useState([]);
 
-  // const queryParams = new URLSearchParams(window.location.search);
-  // const host = queryParams.get("host");
-
-  // const app = createApp({
-  //   apiKey: process.env.SHOPIFY_API_KEY,
-  //   shopOrigin: queryParams.get("shop"), // Extracts shop parameter
-  //   host: host,
-  // });
-
-  // getSessionToken(app).then((token) => {
-  //   // Token contains user information
-  //   const decodedToken = JSON.parse(atob(token.split(".")[1]));
-  //   console.log("tang taran", decodedToken); // Contains user ID, email, etc.
-  // });
   useEffect(() => {
-    const updatedOptions =
-      appliesTo === "specific_collection"
-        ? CollectionOptions.map((collection) => ({
-            value: collection.value,
-            label: collection.label,
-          }))
-        : ProductOptions.map((product) => ({
-            value: product.value,
-            label: product.label,
-          }));
-
-    setOptions(updatedOptions);
-  }, [appliesTo, CollectionOptions, ProductOptions]);
-  useEffect(() => {
-    const updatedOptions =
-      CustomerOptions.length > 0
-        ? CustomerOptions.map((collection) => ({
-            value: collection.value,
-            label: collection.label,
-          }))
-        : [
-            { value: 1, label: "Rustic" },
-            { value: 2, label: "Antique" },
-            { value: 3, label: "Vinyl" },
-            { value: 4, label: "Vintage" },
-            { value: 5, label: "Refurbished" },
-          ];
+    const updatedOptions = CountriesOptions.map((collection) => ({
+      value: collection.value,
+      label: collection.label,
+    }));
 
     set_Options(updatedOptions);
-  }, [appliesTo, CustomerOptions]);
+  }, [CountriesOptions]);
+  useEffect(() => {
+    const updatedOptions = CustomerOptions.map((customer) => ({
+      value: customer.value,
+      label: customer.label,
+    }));
+
+    setOptions(updatedOptions);
+  }, [CustomerOptions]);
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
@@ -454,8 +414,8 @@ export default function AddDiscount() {
 
       if (value === "") {
         set_Options(
-          CustomerOptions.length > 0
-            ? CustomerOptions.map((collection) => ({
+          CountriesOptions.length > 0
+            ? CountriesOptions.map((collection) => ({
                 value: collection.value,
                 label: collection.label,
               }))
@@ -485,15 +445,10 @@ export default function AddDiscount() {
 
       if (value === "") {
         setOptions(
-          appliesTo === "specific_collection"
-            ? CollectionOptions.map((collection) => ({
-                value: collection.value,
-                label: collection.label,
-              }))
-            : ProductOptions.map((product) => ({
-                value: product.value,
-                label: product.label,
-              }))
+          CustomerOptions.map((customer) => ({
+            value: customer.value,
+            label: customer.label,
+          }))
         );
         return;
       }
@@ -527,7 +482,7 @@ export default function AddDiscount() {
       }
       setSelectedOptions(selected);
 
-      setProdIds((prev) => {
+      setCustomerIds((prev) => {
         const updatedSet = new Set(prev);
 
         // Iterate through previously selected items and remove those not in the current selection
@@ -567,11 +522,11 @@ export default function AddDiscount() {
       // console.log("selected", selected);
       // return;
       if (customerIds.length > 0) {
-        setCustomerIdsError(false);
+        setCountriesIdsError(false);
       }
       set_SelectedOptions(selected);
 
-      setCustomerIds((prev) => {
+      setCountriesIds((prev) => {
         const updatedSet = new Set(prev);
 
         // Iterate through previously selected items and remove those not in the current selection
@@ -617,7 +572,7 @@ export default function AddDiscount() {
     { label: "All", value: "all" },
     { label: "Specific Customers", value: "specific_customers" },
   ];
-  const [items, setItems] = useState(["Amount off products", "Code"]);
+  const [items, setItems] = useState(["Free shipping", "Code"]);
   const [items_two, setItems_two] = useState([
     "Can't combine with other discounts",
   ]);
@@ -753,9 +708,10 @@ export default function AddDiscount() {
 
   useEffect(() => {
     // fetchDiscounts();
+    handleFetchCountries();
     handleFetchCustomers();
     handleFetchPopulate();
-    handleFetchCollectionPopulate();
+    // handleFetchCollectionPopulate();
   }, []);
   useEffect(() => {
     // fetchDiscounts();
@@ -845,201 +801,151 @@ export default function AddDiscount() {
   };
 
   const handleCreateDiscount = async () => {
-    let isValid = false;
-    // // const data = { status: true };
-
-    // // // document.getElementById("discount-section").scrollIntoView();
-    // // navigate("/", { state: data });
-    // setModalLoader(true);
-
+    // console.log("customer ids", customerIds);
     // return;
-    // setModalLoader(true);
-
+    let isValid = false;
     try {
       setModalLoader(true);
-      // return;
       isValid = true;
-
-      // if (!newDiscountTitle.startsWith("ccc") || !newDiscountTitle) {
-      //   setTitleError(true);
-      //   isValid = false;
-      // } else {
-      //   setTitleError(false);
-      // }
-
-      // if (!newDiscountAmount) {
-      //   setAmountError(true);
-      //   setModalLoader(false);
-
-      //   isValid = false;
-      // } else {
-      //   setAmountError(false);
-      //   setModalLoader(false);
-      // }
-
-      // if (!newDiscountExpiry) {
-      //   setExpiryError(true);
-      //   // setModalLoader(false);
-
-      //   isValid = false;
-      // } else {
-      //   setExpiryError(false);
-      //   // setModalLoader(false);
-      // }
-
-      if (!newDiscountCode) {
-        setCodeError(true);
-
-        isValid = false;
-
-        // const newLocal = (isValid = false);
-      } else {
-        setCodeError(false);
-      }
-
-      // if (!newDiscountType) {
-      //   setTypeError(true);
-      //   isValid = false;
-      // } else {
-      //   setTypeError(false);
-      // }
-
-      // if (valueType !== "percentage" && ) {
-      //   // setValueError(true);
-      //   // isValid = false;
-      //   // console.log("smao");
-      // } else
-
-      if (valueType === "percentage" && (!value || value > 0 || value < -100)) {
-        setValueError(true);
-        isValid = false;
-      } else if (valueType === "fixed_amount" && (!value || value >= 0)) {
-        setValueError(true);
-
-        isValid = false;
-      } else {
-        setValueError(false);
-        isValid = true;
-      }
-      if (!selectedDate) {
-        console.log("entring");
-        setCodeStartDateError(true);
-
-        isValid = false;
-
-        // return;
-      } else {
-        isValid = true;
-        setCodeStartDateError(false);
-      }
-      if (prodIds.length === 0) {
-        setProductIdsError(true);
-
-        isValid = false;
-        // return;
-      } else {
-        setProductIdsError(false);
-
-        isValid = true;
-      }
-      // if (productIds.length === 0) {
-      //   isValid = false;
-      //   console.log("chec king......");
-      // }
-      // if (
-      //   customerSelection === "specific_customers" &&
-      //   !entitledProductIds.length
-      // ) {
-      //   setCustomerSelectionError(true);
-      //   isValid = false;
-      // } else {
-      //   setCustomerSelectionError(false);
-      // }
-      // console.log(
-      //   "dynamics->>>>>>",
-      //   prodIds,
-      //   valueType,
-      //   newDiscountCode,
-      //   startsAtTime,
-      //   value,
-      //   "check sab h sai isValid?",
-      //   isValid,
-      //   "new date",
-      //   new Date().toDateString(),
-      //   "selected date",
-      //   extractDate(selectedDate)
-      // );
-
-      if (usageLimitchecked && !usageLimitValue) {
-        isValid = false;
-        setUsageLimitCodeError(true);
-      } else {
-        setUsageLimitCodeError(false);
-        isValid = true;
-      }
-
-      if (!value) {
-        setValueError(true);
-        isValid = false;
-      } else {
-        setValueError(false);
-        isValid = true;
-      }
-
       if (minRequirementCheckselected === "MPA" && !minPurchaseReq) {
         setMinPurchaseReqError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         setMinPurchaseReqError(false);
       }
       if (minRequirementCheckselected === "MQI" && !minQuantityReq) {
         setMinQuantityReqError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         setMinQuantityReqError(false);
       }
-
       if (
         (checkselected === "SC" || checkselected === "SCS") &&
+        countriesIds.length === 0
+      ) {
+        setCountriesIdsError(true);
+        isValid = false;
+        setModalLoader(false);
+        return;
+      } else {
+        isValid = true;
+        setCountriesIdsError(false);
+      }
+      if (
+        (checkCustomerSelected === "SC" || checkCustomerSelected === "SCS") &&
         customerIds.length === 0
       ) {
         setCustomerIdsError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         isValid = true;
         setCustomerIdsError(false);
       }
 
-      if (!isValid) {
+      if (usageLimitchecked && usageLimitValue === 0) {
+        isValid = false;
+        setUsageLimitCodeError(true);
         setModalLoader(false);
         return;
+      } else {
+        setUsageLimitCodeError(false);
+        isValid = true;
+      }
+      if (!newDiscountCode) {
+        setCodeError(true);
+
+        isValid = false;
+        setModalLoader(false);
+        return;
+        // const newLocal = (isValid = false);
+      } else {
+        setCodeError(false);
       }
 
+      if (!selectedDate) {
+        console.log("entring");
+        setCodeStartDateError(true);
+
+        isValid = false;
+        setModalLoader(false);
+        return;
+        // return;
+      } else {
+        isValid = true;
+        setCodeStartDateError(false);
+      }
+      if (usageLimitchecked && !usageLimitValue) {
+        isValid = false;
+        setUsageLimitCodeError(true);
+        setModalLoader(false);
+        return;
+      } else {
+        setUsageLimitCodeError(false);
+        isValid = true;
+      }
+      if (
+        purhcaseTypeCheckselected === "otp" &&
+        oneTimePurchaseProducts.length === 0
+      ) {
+        isValid = false;
+        setModalLoader(false);
+        return;
+      } else {
+        isValid = true;
+      }
+      if (
+        purhcaseTypeCheckselected === "sub" &&
+        subscriptionProducts.length === 0
+      ) {
+        isValid = false;
+        setSubscriptionProductsError(true);
+        setModalLoader(false);
+        return;
+      } else {
+        setSubscriptionProductsError(false);
+        isValid = true;
+      }
+      if (
+        purhcaseTypeCheckselected !== "otp" &&
+        excludeShippingRates &&
+        excludeShippingRatesValue === 0
+      ) {
+        isValid = false;
+        setExcludeShippingRatesValueError(true);
+        setModalLoader(false);
+        return;
+      } else {
+        setExcludeShippingRatesValueError(false);
+        isValid = true;
+      }
+      console.log("isvalid...", isValid);
+      // if (isValid === false) {
+      //   setModalLoader(false);
+      //   return;
+      // }
       // return;
       const newDiscount = {
         price_rule: {
           title: newDiscountCode,
-          target_type: "line_item",
-          target_selection: "entitled",
-          allocation_method:
-            minRequirementCheckselected === "MPA" ||
-            minRequirementCheckselected === "MQI"
-              ? "each"
-              : "across",
-          value_type: valueType,
-          value: value,
+          value_type: "percentage", // fixed_amount  OR percentage
+          value: "-100.0", //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
           customer_selection:
-            checkselected === "SC" || checkselected === "SCS"
+            checkCustomerSelected === "SC" || checkCustomerSelected === "SCS"
               ? "prerequisite"
               : "all",
-
-          // Ensure at least one entitlement is provided
-          ...(prodIds && prodIds.length > 0
-            ? appliesTo === "specific_collection"
-              ? { entitled_collection_ids: prodIds } // Collections entitlement
-              : { entitled_product_ids: prodIds } // Products entitlement
-            : {}),
-
+          target_type: "shipping_line", //line_item: The price rule applies to the cart's line items. OR shipping_line: The price rule applies to the cart's shipping lines.
+          target_selection:
+            (checkselected === "SC" || checkselected === "SCS") &&
+            countriesIds.length > 0
+              ? "entitled"
+              : "all", //all: The price rule applies the discount to all line items in the checkout. OR entitled: The price rule applies the discount to selected entitlements only.
+          allocation_method: "each", // each discount applies to single item we choosen OR accross discount applies to all items in the checkout cart.
           starts_at:
             extractDate(selectedDate) === new Date().toDateString()
               ? handleDateChange(new Date(), true)
@@ -1051,15 +957,19 @@ export default function AddDiscount() {
             : selectedDateEnd && endAtTime
             ? selectedDateEnd + ":" + endAtTime
             : null,
-
-          // Add prerequisite_customer_ids if applicable
-          ...(checkselected === "SC" ||
-          (checkselected === "SCS" && customerIds.length > 0)
-            ? { prerequisite_customer_ids: customerIds }
-            : {}),
-
-          usage_limit: usageLimitValue,
-          once_per_customer: !!oneUserPerCustomerchecked,
+          // Make sure entitled_product_ids is an array
+          ...(purhcaseTypeCheckselected &&
+            purhcaseTypeCheckselected !== "otp" && {
+              entitled_product_ids:
+                purhcaseTypeCheckselected === "sub"
+                  ? subscriptionProducts
+                  : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
+            }),
+          //conditionally add country ids if countries checkbox is selected.
+          ...((checkselected === "SC" || checkselected === "SCS") &&
+            countriesIds.length > 0 && {
+              entitled_country_ids: countriesIds,
+            }),
 
           // Conditionally add prerequisite if minRequirementCheckselected is "MPA"
           ...(minRequirementCheckselected === "MPA" &&
@@ -1078,9 +988,33 @@ export default function AddDiscount() {
               },
               prerequisite_product_ids: prodIds, // Only add when MQI is selected
             }),
+          // Add prerequisite_customer_ids if applicable
+          ...(checkCustomerSelected === "SC" ||
+          (checkCustomerSelected === "SCS" && customerIds.length > 0)
+            ? { prerequisite_customer_ids: customerIds }
+            : {}),
+
+          //exclude shipping rates value
+          ...(excludeShippingRates &&
+            excludeShippingRatesValue > 0 && {
+              hasExcludeShippingRatesOver: { value: true },
+              excludeShippingRatesOver: {
+                value: excludeShippingRatesValue + ".00",
+              },
+            }),
+          // ...(purhcaseTypeCheckselected !== "otp" &&
+          //   excludeShippingRates &&
+          //   excludeShippingRatesValue > 0 && {
+          //     prerequisite_shipping_price_range: {
+          //       less_than_or_equal_to: excludeShippingRatesValue,
+          //     },
+          //   }),
+
+          usage_limit: usageLimitValue,
+          once_per_customer: !!oneUserPerCustomerchecked,
         },
         discount_code: newDiscountCode,
-        discount_type: "product",
+        discount_type: "order",
       };
 
       console.log(
@@ -1090,34 +1024,13 @@ export default function AddDiscount() {
         checked,
         "selected end date if true if is->"
       );
-      // return;
-      // return;
-      //   const newDiscount = {
-      //     "price_rule": {
-      //         title:newDiscountTitle,
-      //         target_type: targetType,
-      //         target_selection:targetSelection,
-      //         allocation_method: "across", //3
-      //         value_type: valueType,
-      //         value,
-      //         customer_selection: "all", //2
-      //         entitled_product_ids: [  //1
-      //           9184246858001
-      //         ],
-      //         starts_at:startsAt
-
-      //         // end_at:"2024-08-30:00:00:00Z"
-      //     },
-      //     discount_code: "WINTER_SALE_15%_OFF_244",
-      //     discount_type: "product"
-      // }
 
       console.log("dynamic->>>>>>", targetSelection);
 
       //  return;
       //  console.log('hardcode->>>>>>',_newDiscount)
       const response = await axios.post(
-        "https://middleware-discountapp.mean3.ae/add-discount-code",
+        "http://localhost:4000/add-discount-code",
         newDiscount,
         {
           headers: {
@@ -1148,17 +1061,24 @@ export default function AddDiscount() {
       setValueType("fixed_amount");
       setValue("");
       setProdIds([]);
+      setCustomerIdsError(false);
+      setCustomerIds([]);
+      setMinRequirementCheckSelected("NMR");
+      setMinRequirementSelected("NMR");
       setSelectedTags([]);
+      set_SelectedTags([]);
       setShippingDiscountValue("");
       setCustomerSelection("all");
-      setStartsAt("");
-      setEndAt("");
+      setStartsAtTime("");
+      setEndAtTime("");
       setDiscountCodeType("");
       setPrerequisiteToEntitlementQuantityRatio([]);
       setShippingError(false);
       setCodeStartDateError(false);
       setProductIdsError(false);
       setTitleError(false);
+      setMinPurchaseReq(0);
+      setMinQuantityReq(0);
       setAmountError(false);
       setExpiryError(false);
       setCodeError(false);
@@ -1171,6 +1091,8 @@ export default function AddDiscount() {
       setEndAtTime();
       setSelectedDateEnd();
       setProdIds([]);
+      setUsageLimitValue(0);
+      setUsageLimitchecked(false);
       // toggleActive();
       // toastMarkup("Discount Added Successfull");
       const data = { status: true };
@@ -1190,40 +1112,65 @@ export default function AddDiscount() {
 
       console.log("error", error);
     } finally {
-      // return;
+      if (isValid) {
+        setNewDiscountTitle("");
+        setNewDiscountAmount("");
+        setNewDiscountExpiry("");
+        setNewDiscountCode("");
+        setNewDiscountType("");
+        setEntitledProductIds([]);
+        setTargetType("line_item");
+        setTargetSelection("all");
+        setAllocationMethod("across");
+        setValueType("fixed_amount");
+        setValue("");
+        setProdIds([]);
+        setCustomerIdsError(false);
+        setCustomerIds([]);
+        setMinRequirementCheckSelected("NMR");
+        setMinRequirementSelected("NMR");
+        setSelectedTags([]);
+        set_SelectedTags([]);
+        setShippingDiscountValue("");
+        setCustomerSelection("all");
+        setStartsAtTime("");
+        setEndAtTime("");
+        setDiscountCodeType("");
+        setPrerequisiteToEntitlementQuantityRatio([]);
+        setShippingError(false);
+        setCodeStartDateError(false);
+        setProductIdsError(false);
+        setTitleError(false);
+        setMinPurchaseReq(0);
+        setMinQuantityReq(0);
+        setAmountError(false);
+        setExpiryError(false);
+        setCodeError(false);
+        setTypeError(false);
+        setValueError(false);
+        setCustomerSelectionError(false);
+        setIsModalOpen(false);
+        setSelectedDate();
+        setStartsAtTime();
+        setEndAtTime();
+        setSelectedDateEnd();
+        setProdIds([]);
+        setUsageLimitValue(0);
+        setUsageLimitchecked(false);
+        // toggleActive();
+        // toastMarkup("Discount Added Successfull");
+        const data = { status: true };
 
-      if (!isValid) {
-        setModalLoader(false);
-        return;
+        // navigate("/", { state: data });
+        // setToastVisible(true);
+        // fetchDiscounts();
+
+        // document.getElementById("discount-section").scrollIntoView();
+        navigate("/", { state: data });
       }
-      const data = { status: true };
-      setSelectedDate(formatDate(new Date()));
-      setSelectedDateEnd(modifyDate(new Date()));
-      setStartsAtTime(formatTime(new Date()));
-      setEndAtTime(formatTime(new Date()));
-      setShippingError(false);
-      setCodeStartDateError(false);
-      setProductIdsError(false);
-      setTitleError(false);
-      setAmountError(false);
-      setExpiryError(false);
-      setCodeError(false);
-      setTypeError(false);
-      setValueError(false);
-      setSelectedTags([]);
-      setValue("");
-      setProdIds([]);
-      setSelectedTags([]);
-      setProductIdsError(false);
-      setCustomerIds(false);
-      setAppliesTo("specific_product");
-      setUsageLimitchecked(false);
-      setUsageLimitValue(0);
-      // Ensure loader is turned off
-      setModalLoader(false);
-      navigate("/", { state: data });
     }
   };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setToastVisible(false);
@@ -1242,55 +1189,6 @@ export default function AddDiscount() {
       ? [{ label: "Percentage", value: "percentage" }]
       : AppliesToOptions;
 
-  // const handleFetchPopulate = async () => {
-  //   setIsLoading(true);
-
-  //   await fetch("api/products/all", { method: "GET" })
-  //     .then((response) => {
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! status: ${response.status}`);
-  //       }
-  //       return response.json(); // Assuming the response is in JSON format
-  //     })
-  //     .then((data) => {
-  //       // console.log(data.data); // This will log the fetched products
-  //       // You can now use the 'data' variable to access your fetched products
-  //       // Mapping the products data to the desired format
-  //       console.log("Fetched Products:", data); // Debugging line
-
-  //       const formattedProducts = data.data.map((product) => ({
-  //         label: product.title,
-  //         value: product.id,
-  //       }));
-  //       // console.log("Fetched Products:", formattedProducts); // Debugging line
-  //       // const deselectedOptions = useMemo(() => formattedProducts, []);
-  //       // console.log(formattedProducts);
-  //       setProductOptions(formattedProducts);
-  //       setIsLoading(false);
-  //     })
-  //     .catch((error) => {
-  //       setIsLoading(false);
-  //       console.error("There was an error fetching the products:", error);
-  //     });
-
-  //   // if (response.ok) {
-  //   //   console.log("fetched products......", response.json());
-  //   //   // await refetchProductCount();
-  //   //   // setToastProps({
-  //   //   //   content: t("ProductsCard.productsCreatedToast", {
-  //   //   //     count: productsCount,
-  //   //   //   }),
-  //   //   // });
-  //   // } else {
-  //   //   console.log("fetched products......", response);
-
-  //   //   setIsLoading(false);
-  //   //   // setToastProps({
-  //   //   //   content: t("ProductsCard.errorCreatingProductsToast"),
-  //   //   //   error: true,
-  //   //   // });
-  //   // }
-  // };
   const handleFetchPopulate = async () => {
     setIsLoading(true);
 
@@ -1306,40 +1204,25 @@ export default function AddDiscount() {
         // You can now use the 'data' variable to access your fetched products
         // Mapping the products data to the desired format
 
-        console.log("Fetched price rules:", data); // Debugging line
+        console.log("Fetched products:", data); // Debugging line
         // return;
-        const formattedProducts = data.data.map((product) => ({
-          label: product.title,
-          value: product.id,
-        }));
-        // console.log("Fetched price rules:", data); // Debugging line
-        // const deselectedOptions = useMemo(() => formattedProducts, []);
-        // console.log(formattedProducts);
-        setProductOptions(formattedProducts);
-        setIsLoading(false);
+        // Filter out one-time purchase products (products without subscription tags)
+        // Filter out one-time purchase products (products without subscription tags)
+        const oneTimeProd = data.data
+          .filter((product) => !product.tags.includes("subscription"))
+          .map((product) => product.id); // Return only the IDs
+
+        // Filter out subscription-based products (products with the 'subscription' tag)
+        const subProd = data.data
+          .filter((product) => product.tags.includes("subscription"))
+          .map((product) => product.id); // Return only the IDs
+        setSubscriptionProducts(subProd);
+        setOneTimePurchaseProducts(oneTimeProd);
       })
       .catch((error) => {
         setIsLoading(false);
         console.error("There was an error fetching the products:", error);
       });
-
-    // if (response.ok) {
-    //   console.log("fetched products......", response.json());
-    //   // await refetchProductCount();
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.productsCreatedToast", {
-    //   //     count: productsCount,
-    //   //   }),
-    //   // });
-    // } else {
-    //   console.log("fetched products......", response);
-
-    //   setIsLoading(false);
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.errorCreatingProductsToast"),
-    //   //   error: true,
-    //   // });
-    // }
   };
   const handleFetchCustomers = async () => {
     setIsLoading(true);
@@ -1392,6 +1275,31 @@ export default function AddDiscount() {
     //   // });
     // }
   };
+  const handleFetchCountries = async () => {
+    setIsLoading(true);
+
+    await fetch("api/countries", { method: "GET" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json(); // Assuming the response is in JSON format
+      })
+      .then((data) => {
+        const formattedCountries = data.data.map((countries) => ({
+          label: countries.name,
+          value: countries.id,
+        }));
+
+        setCountriesOptions(formattedCountries);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        setIsLoading(false);
+        console.error("There was an error fetching the customers:", error);
+      });
+  };
+  console.log("countries.....", CountriesOptions);
 
   function titleCase(string) {
     return string
@@ -1411,15 +1319,13 @@ export default function AddDiscount() {
       // verticalContent={verticalContentMarkup}
       // placeholder="Autmn,Skat Board"
       autoComplete="off"
-      placeholder={`Specific ${
-        appliesTo === "specific_collection" ? "collections" : "products"
-      }`}
+      placeholder="Search customers"
     />
   );
   const _textField = (
     <Autocomplete.TextField
       labelHidden
-      placeholder="Search customers"
+      placeholder="Search Countries"
       onChange={_updateText}
       value={_inputValue}
       autoComplete="off"
@@ -1437,7 +1343,7 @@ export default function AddDiscount() {
       );
       // console.log("checkup", matchedOption);
       // return;
-      setCustomerIds((prev) => {
+      setCountriesIds((prev) => {
         const updatedSet = new Set(prev);
 
         // Iterate through previously selected items and remove those not in the current selection
@@ -1493,7 +1399,7 @@ export default function AddDiscount() {
       );
       // console.log("checkup", matchedOption);
       // return;
-      setProdIds((prev) => {
+      setCustomerIds((prev) => {
         const updatedSet = new Set(prev);
 
         // Iterate through previously selected items and remove those not in the current selection
@@ -1539,7 +1445,6 @@ export default function AddDiscount() {
     },
     []
   );
-  console.log("katjas", _options);
   const tagMarkup = selectedTags.map((option) => (
     <LegacyCard key={option}>
       <Tag onRemove={removeTag(option)}>{option}</Tag>
@@ -1568,16 +1473,11 @@ export default function AddDiscount() {
     // Set the discount code state
     setNewDiscountCode(discountCode);
   };
-  // console.log(
-  //   "checkingggg.......",
-  //   checkselected === "SC" &&
-  //     selectedOptions.length > 0 &&
-  //     selectedTags.length > 0
-  // );
+  console.log("subscrioption ids", oneTimePurchaseProducts);
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
-      title="Create product discount"
+      title="Create shipping discount"
     >
       <div
         style={{
@@ -1602,87 +1502,19 @@ export default function AddDiscount() {
           }}
         >
           {/* first card */}
-          <div
-            style={{
-              marginBottom: 5,
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 20,
-                // gap: "120px",
-                // position: "absolute",
-                // top: -15,
-                // left: "0",
-                // right: "0",
-                // padding: "32px 32px", // Match the outer box padding
-                // paddingRight: "12px",
-                // paddingLeft: "12px",
-                boxSizing: "border-box",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  color: "black",
-                }}
-              >
-                Amount off products
-              </span>
-              <span
-                style={{ fontSize: "14px", fontWeight: "500", color: "gray" }}
-              >
-                Product discount
-              </span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: -20, // Adjust spacing as needed
-              }}
-            >
-              <Button
-                onClick={handleRandomCodeGenerate}
-                plain
-                style={{
-                  color: "blue", // Set the text color to blue
-                  backgroundColor: "transparent", // Make background transparent
-                  border: "none", // Remove default border
-                  fontWeight: "bold", // Set font weight to bold
-                }}
-              >
-                <Text fontWeight="medium">Generate random code</Text>
-              </Button>
-            </div>
-            <PolarisTextField
-              label="Discount Code"
-              value={newDiscountCode}
-              onChange={(value) => setNewDiscountCode(value)}
-              error={codeError ? "Discount code is required." : ""}
-            />
-            <div style={{ color: "gray", fontWeight: "500", fontSize: "13px" }}>
-              Customer must enter this code at checkout
-            </div>
-          </div>
 
+          <DiscountCodeUI
+            handleRandomCodeGenerate={handleRandomCodeGenerate}
+            newDiscountCode={newDiscountCode}
+            setNewDiscountCode={setNewDiscountCode}
+            codeError={codeError}
+            topLeftBannerName="Free shipping"
+            topRightBannerName="Shipping discount"
+          />
           {/* second card */}
           <div
             style={{
               marginBottom: 5,
-
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1698,152 +1530,122 @@ export default function AddDiscount() {
               marginBottom: -110,
             }}
           >
-            {/* <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginBottom: -20, // Adjust spacing as needed
-            }}
-          >
-            <Button
-              onClick={handleRandomCodeGenerate}
-              plain
-              style={{
-                color: "blue", // Set the text color to blue
-                backgroundColor: "transparent", // Make background transparent
-                border: "none", // Remove default border
-                fontWeight: "bold", // Set font weight to bold
-              }}
-            >
-              <Text fontWeight="medium">Generate random code</Text>
-            </Button>
-          </div> */}
-
             <div
               style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "flex-start",
-                alignItems: "flex-end",
-                flexWrap: "nowrap",
-                gap: "2%",
+                marginBottom: 15,
+                fontSize: "14px",
+                fontWeight: "500",
+                color: "black",
               }}
             >
-              <div style={{ width: "70%" }}>
-                <Select
-                  label={
-                    <span style={{ fontWeight: "500" }}>Discount Value</span>
-                  }
-                  options={filteredValueTypeOptions}
-                  value={valueType}
-                  onChange={(value) => setValueType(value)}
-                />
-              </div>
-              <div style={{ width: "30%", borderRadius: "20%" }}>
-                {/* <PolarisTextField
-                label="Discount Value "
-                type="number"
-                value={value}
-                onChange={handleChange}
-                error={valueError ? "Invalid Value" : ""}
-              /> */}
-
-                <PolarisTextField
-                  suffix={valueType !== "fixed_amount" && "%"}
-                  prefix={valueType === "fixed_amount" && "$"}
-                  // prefix="%"
-                  // label="Discount Code"
-                  type="number"
-                  value={value}
-                  onChange={handleChange}
-                  error={valueError ? "Invalid Value" : ""}
-                />
-              </div>
+              Countries
             </div>
             <div
               style={{
+                // display: "flex",
+                // justifyContent: "flex-start",
+                // gap: "10px",
+                width: "100%",
                 marginTop: 10,
-                marginBottom: 30,
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "flex-start",
-                alignItems: "flex-end",
-                flexWrap: "nowrap",
-                gap: "2%",
               }}
             >
-              <div style={{ width: "70%" }}>
-                <Select
-                  label={
-                    <span
-                      style={{
-                        fontWeight: "500",
-                        fontSize: "13px",
-                        color: "#353535",
-                      }}
-                    >
-                      Applies to
-                    </span>
+              {/* Countries card */}
+              <ChoiceList
+                variant="group"
+                choices={[
+                  { label: "All countries", value: "all" },
+                  // { label: "Specific customer segments", value: "SCS" },
+                  { label: "Selected countries", value: "SC" },
+                ]}
+                selected={selected}
+                onChange={handleChangeCountriesSelection}
+              />
+              <div style={{ marginTop: 20 }} />
+              {checkselected === "SC" && (
+                <FormLayout condensed>
+                  <Autocomplete
+                    allowMultiple
+                    options={_options}
+                    selected={_selectedOptions}
+                    onSelect={_updateSelection}
+                    textField={_textField}
+                    prefix={<Icon source={SearchMinor} />}
+                  />
+                  {CountriesIdsError && (
+                    <Text as="p" color="critical">
+                      Select atleast a country
+                    </Text>
+                  )}
+                </FormLayout>
+              )}
+            </div>
+            <div style={{ marginBottom: 10, marginTop: 15 }}>
+              <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
+            </div>
+            {/* Purchase type card */}
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "500",
+                color: "black",
+                marginBottom: 15,
+              }}
+            >
+              Purchase type
+            </div>
+            <ChoiceList
+              variant="group"
+              choices={[
+                { label: "One-time purhcase", value: "otp" },
+                // { label: "Specific customer segments", value: "SCS" },
+                { label: "Subscription", value: "sub" },
+                { label: "Both", value: "both" },
+              ]}
+              selected={purchaseTypeSelected}
+              onChange={handleChangePurhcaseTypeSelection}
+            />
+            {subscriptionProductsError && (
+              <div style={{ color: "red", width: "100%" }}>
+                you don't have products that have subscription tags,choose other
+                option or add tags to products
+              </div>
+            )}
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "500",
+                color: "black",
+                marginBottom: 5,
+                marginTop: 15,
+              }}
+            >
+              Shipping rates
+            </div>
+            <Checkbox
+              label="Exclude shipping rates over a certain amount"
+              checked={excludeShippingRates}
+              onChange={handleExcludeShippingRates}
+            />
+            {excludeShippingRates && (
+              <div style={{ marginLeft: 27, width: "20%" }}>
+                <PolarisTextField
+                  type="number"
+                  label=""
+                  value={excludeShippingRatesValue}
+                  onChange={(value) => setExcludeShippingRatesValue(value)}
+                  error={
+                    excludeShippingRatesValueError
+                      ? "shipping rates value required."
+                      : ""
                   }
-                  options={filteredAppliesToOptions}
-                  value={appliesTo}
-                  onChange={(value) => {
-                    // setCollectionOptions([]);
-                    // setProductOptions([]);
-                    setAppliesTo(value);
-
-                    if (appliesTo === "specific_collection") {
-                      setProductOptions([]);
-                    } else {
-                      setCollectionOptions([]);
-                    }
-                  }}
                 />
               </div>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <FormLayout condensed>
-                <Autocomplete
-                  allowMultiple
-                  options={options}
-                  selected={selectedOptions}
-                  onSelect={updateSelection}
-                  textField={textField}
-                  prefix={<Icon source={SearchMinor} />}
-                />
-                {productIdsError && (
-                  <Text as="p" color="critical">
-                    Select atleast a product
-                  </Text>
-                )}
-              </FormLayout>
-              {/* <PolarisTextField
-              prefix={<Icon source={SearchMinor} />}
-              placeholder={`Specific ${
-                appliesTo === "specific_collection" ? "collections" : "products"
-              }`}
-              // label={<span style={{ fontWeight: "500" }}>Discount Value</span>}
-              // suffix={valueType !== "fixed_amount" && "%"}
-              // prefix={valueType === "fixed_amount" && "$"}
-              // prefix="%"
-              // label="Discount Code"
-              value={newDiscountCode}
-              onChange={(value) => setNewDiscountCode(value)}
-              error={codeError ? "Discount code is required." : ""}
-            /> */}
-            </div>
-            {/* <div style={{ color: "gray", fontWeight: "500", fontSize: "13px" }}>
-            Customer must enter this code at checkout
-          </div> */}
-            <div style={{ marginBottom: 5, marginTop: 5 }}>
-              <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
-            </div>
+            )}
           </div>
           {/* third card */}
           <div
             style={{
               marginBottom: 5,
-
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1945,21 +1747,21 @@ export default function AddDiscount() {
                   // { label: "Specific customer segments", value: "SCS" },
                   { label: "Specific customers", value: "SC" },
                 ]}
-                selected={selected}
+                selected={customerSelected}
                 onChange={handleChangeCustomerSelection}
               />
               <div style={{ marginTop: 20 }} />
-              {checkselected === "SC" && (
+              {checkCustomerSelected === "SC" && (
                 <FormLayout condensed>
                   <Autocomplete
                     allowMultiple
-                    options={_options}
-                    selected={_selectedOptions}
-                    onSelect={_updateSelection}
-                    textField={_textField}
+                    options={options}
+                    selected={selectedOptions}
+                    onSelect={updateSelection}
+                    textField={textField}
                     prefix={<Icon source={SearchMinor} />}
                   />
-                  {CustomerIdsError && (
+                  {customerIdsError && (
                     <Text as="p" color="critical">
                       Select atleast a customer
                     </Text>
@@ -1968,7 +1770,7 @@ export default function AddDiscount() {
               )}
             </div>
             <div style={{ marginBottom: 5, marginTop: 15 }}>
-              <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
+              <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
             </div>
           </div>
           {/* fifth card */}
@@ -2276,3 +2078,6 @@ export default function AddDiscount() {
     </Page>
   );
 }
+
+// "{\"title\":{\"type\":\"string\"},\"discountCode\":{\"type\":\"string\"},\"discountType\":{\"type\":\"string\"},\"discountMethod\":{\"type\":\"string\"},\"discountClass\":{\"type\":\"string\"},\"endsAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"hasEndDate\":{\"type\":\"boolean\"},\"oncePerCustomer\":{\"type\":\"boolean\"},\"startsAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"totalUsageLimit\":{\"type\":\"string\"},\"hasUsageLimit\":{\"type\":\"boolean\"},\"customerEligibility\":{\"type\":\"string\"},\"selectedCustomers\":{\"type\":\"array\",\"items\":{}},\"selectedCustomerGroups\":{\"type\":\"array\",\"items\":{}},\"selectedCustomerSegments\":{\"type\":\"array\",\"items\":{}},\"combinesWithProductDiscounts\":{\"type\":\"boolean\"},\"combinesWithOrderDiscounts\":{\"type\":\"boolean\"},\"combinesWithShippingDiscounts\":{\"type\":\"boolean\"},\"appliesTo\":{\"type\":\"string\"},\"selectedCollections\":{\"type\":\"array\",\"items\":{}},\"selectedProductVariantsDescriptors\":{\"type\":\"array\",\"items\":{}},\"percentageDiscountValue\":{\"type\":\"string\"},\"fixedAmountDiscountValue\":{\"type\":\"string\"},\"discountValueType\":{\"type\":\"string\"},\"oncePerOrder\":{\"type\":\"boolean\"},\"minimumRequirement\":{\"type\":\"string\"},\"minimumRequirementQuantity\":{\"type\":\"string\"},\"minimumRequirementSubtotal\":{\"type\":\"string\"},\"freeShippingPurchaseType\":{\"type\":\"string\"},\"recurringPaymentType\":{\"type\":\"string\"},\"purchaseType\":{\"type\":\"string\"},\"multiplePaymentsLimit\":{\"type\":\"string\"},\"bxgyHasAllocationLimit\":{\"type\":\"boolean\"},\"bxgyAllocationLimit\":{\"type\":\"string\"},\"bxgyCustomerBuysValueType\":{\"type\":\"string\"},\"bxgyCustomerBuysType\":{\"type\":\"string\"},\"bxgyCustomerBuysCollections\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerBuysProducts\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerBuysQuantity\":{\"type\":\"string\"},\"bxgyCustomerBuysAmount\":{\"type\":\"string\"},\"bxgyCustomerGetsType\":{\"type\":\"string\"},\"bxgyCustomerGetsCollections\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerGetsProducts\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerGetsQuantity\":{\"type\":\"string\"},\"bxgyCustomerGetsDiscountType\":{\"type\":\"string\"},\"bxgyCustomerGetsDiscountAmount\":{\"type\":\"string\"},\"bxgyCustomerGetsDiscountPercentage\":{\"type\":\"string\"},\"selectedCountries\":{\"type\":\"array\",\"items\":{}},\"countriesSelectionType\":{\"type\":\"string\"},\"hasExcludeShippingRatesOver\":{\"type\":\"boolean\"},\"excludeShippingRatesOver\":{\"type\":\"string\"},\"channelIds\":{\"type\":\"array\",\"items\":{}},\"metafields\":{\"type\":\"array\",\"items\":{}}}"
+// "{\"title\":{\"value\":\"\"},\"discountCode\":{\"value\":\"CWX16TCBKMNP\"},\"discountType\":{\"value\":\"FreeShipping\"},\"discountMethod\":{\"value\":\"Code\"},\"discountClass\":{\"value\":\"SHIPPING\"},\"endsAt\":{\"value\":\"2024-09-20T05:59:46.925Z\"},\"hasEndDate\":{\"value\":false},\"oncePerCustomer\":{\"value\":false},\"startsAt\":{\"value\":\"2024-09-20T05:59:46.925Z\"},\"totalUsageLimit\":{\"value\":\"\"},\"hasUsageLimit\":{\"value\":false},\"customerEligibility\":{\"value\":\"EVERYONE\"},\"selectedCustomers\":{\"value\":[]},\"selectedCustomerGroups\":{\"value\":[]},\"selectedCustomerSegments\":{\"value\":[]},\"combinesWithProductDiscounts\":{\"value\":false},\"combinesWithOrderDiscounts\":{\"value\":false},\"combinesWithShippingDiscounts\":{\"value\":false},\"appliesTo\":{\"value\":\"ORDER\"},\"selectedCollections\":{\"value\":[]},\"selectedProductVariantsDescriptors\":{\"value\":[]},\"percentageDiscountValue\":{\"value\":\"\"},\"fixedAmountDiscountValue\":{\"value\":\"\"},\"discountValueType\":{\"value\":\"PERCENTAGE\"},\"oncePerOrder\":{\"value\":true},\"minimumRequirement\":{\"value\":\"NONE\"},\"minimumRequirementQuantity\":{\"value\":\"\"},\"minimumRequirementSubtotal\":{\"value\":\"\"},\"freeShippingPurchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"recurringPaymentType\":{\"value\":\"FIRST_PAYMENT\"},\"purchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"multiplePaymentsLimit\":{\"value\":\"\"},\"bxgyHasAllocationLimit\":{\"value\":false},\"bxgyAllocationLimit\":{\"value\":\"\"},\"bxgyCustomerBuysValueType\":{\"value\":\"QUANTITY\"},\"bxgyCustomerBuysType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerBuysCollections\":{\"value\":[]},\"bxgyCustomerBuysProducts\":{\"value\":[]},\"bxgyCustomerBuysQuantity\":{\"value\":\"\"},\"bxgyCustomerBuysAmount\":{\"value\":\"\"},\"bxgyCustomerGetsType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerGetsCollections\":{\"value\":[]},\"bxgyCustomerGetsProducts\":{\"value\":[]},\"bxgyCustomerGetsQuantity\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountType\":{\"value\":\"PERCENTAGE\"},\"bxgyCustomerGetsDiscountAmount\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountPercentage\":{\"value\":\"\"},\"selectedCountries\":{\"value\":[]},\"countriesSelectionType\":{\"value\":\"ALL_COUNTRIES\"},\"hasExcludeShippingRatesOver\":{\"value\":true},\"excludeShippingRatesOver\":{\"value\":\"21.00\"},\"channelIds\":{\"value\":[]},\"metafields\":{\"value\":[]}}"
