@@ -44,6 +44,7 @@ import { check } from "prettier";
 import { createApp } from "@shopify/app-bridge";
 import { getSessionToken } from "@shopify/app-bridge/utilities";
 import DiscountCodeUI from "../components/DiscountCodeUI";
+import DiscountCombinationUI from "../components/DiscountCombinationUI";
 // import { useNavigate } from "@shopify/app-bridge-react";
 
 export default function AddDiscountShipping() {
@@ -223,15 +224,18 @@ export default function AddDiscountShipping() {
       setMinRequirementSelected(value);
     }
   }, []);
-  const [active, setActive] = useState(false);
-
-  const toggleActive = useCallback(() => setActive((active) => !active), []);
 
   const handleChangeUsageLimitChecked = (checked) => {
     setUsageLimitchecked((prev) => !prev);
     if (!usageLimitchecked) {
       setUsageLimitValue(0);
     }
+  };
+  const handleChangeIsProductChecked = (checked) => {
+    setIsProductDiscount((prev) => !prev);
+  };
+  const handleChangeIsOrderChecked = (checked) => {
+    setIsOrderDiscount((prev) => !prev);
   };
   const handleChangeoneUserPerCustomerChecked = (checked) => {
     setOneUserPerCustomerchecked((prev) => !prev);
@@ -243,32 +247,7 @@ export default function AddDiscountShipping() {
       setExcludeShippingRatesValueError(false);
     }
   };
-  const toastMarkup = (message) =>
-    active ? <Toast content={`${message}`} onDismiss={toggleActive} /> : null;
 
-  const targetTypeOptions = [
-    { label: "Line Item", value: "line_item" },
-    { label: "Shipping Line", value: "shipping_line" },
-  ];
-
-  const targetSelectionOptions = [
-    { label: "All", value: "all" },
-    { label: "Specific Products", value: "specific_products" },
-  ];
-
-  const allocationMethodOptions = [
-    { label: "Across All Items", value: "across" },
-    { label: "To Each Item", value: "each" },
-  ];
-
-  const valueTypeOptions = [
-    { label: "Fixed Amount", value: "fixed_amount" },
-    { label: "Percentage", value: "percentage" },
-  ];
-  const AppliesToOptions = [
-    { label: "Specific Collection", value: "specific_collection" },
-    { label: "Specific Product", value: "specific_product" },
-  ];
   const [selectedTags, setSelectedTags] = useState([]);
 
   const [_selectedTags, set_SelectedTags] = useState([]);
@@ -318,6 +297,9 @@ export default function AddDiscountShipping() {
   const [_options, set_Options] = useState([]);
   const [subscriptionProducts, setSubscriptionProducts] = useState([]);
   const [oneTimePurchaseProducts, setOneTimePurchaseProducts] = useState([]);
+  const [isProductDiscount, setIsProductDiscount] = useState(false);
+
+  const [isOrderDiscount, setIsOrderDiscount] = useState(false);
 
   useEffect(() => {
     const updatedOptions = CountriesOptions.map((collection) => ({
@@ -399,14 +381,6 @@ export default function AddDiscountShipping() {
   // const newDate = modifyDate("2024-08-05");
   // console.log(newDate); // Output: 2024-07-06
 
-  const handleDateChangeEnd = (newDate) => {
-    // Get the year, month (zero-based index, so add 1), and day
-    const year = newDate.getFullYear();
-    const month = (newDate.getMonth() + 1).toString().padStart(2, "0"); // Ensures two-digit month
-    const day = newDate.getDate().toString().padStart(2, "0"); // Ensures two-digit day
-    console.log("Selected Date end:", `${year}-${month}-${day}`);
-    setSelectedDateEnd(`${year}-${month}-${day}`);
-  };
   console.log(options, "000000000000000000000000");
   const _updateText = useCallback(
     (value) => {
@@ -561,38 +535,11 @@ export default function AddDiscountShipping() {
     },
     [options]
   );
-  console.log("selected product->>>>>>", selectedTags);
-
-  const discountTypeOptions = [
-    { label: "Amount off products", value: "amount_off_products" },
-    { label: "Free shipping", value: "free_shipping" },
-  ];
-
-  const customerSelectionOptions = [
-    { label: "All", value: "all" },
-    { label: "Specific Customers", value: "specific_customers" },
-  ];
   const [items, setItems] = useState(["Free shipping", "Code"]);
   const [items_two, setItems_two] = useState([
     "Can't combine with other discounts",
   ]);
 
-  const addItem = (newItem) => {
-    setItems([...items, newItem]);
-  };
-  const addItem_two = (newItem) => {
-    setItems_two([...items, newItem]);
-  };
-
-  // useEffect(() => {
-  //   const savedDiscounts = JSON.parse(localStorage.getItem("discounts")) || [];
-  //   setDiscounts(savedDiscounts);
-  // }, []);
-
-  console.log("data", discounts);
-  const filteredDiscounts = discounts.filter((discount) =>
-    discount?.title?.toLowerCase().includes(filterValue.toLowerCase())
-  );
   const handleFetchCollectionPopulate = async () => {
     // setIsLoading(true);
     const apiUrl = `https://middleware-discountapp.mean3.ae/get-collections?limit=50`;
@@ -663,48 +610,6 @@ export default function AddDiscountShipping() {
       console.error("Error fetching price rule", error.response.data);
     }
   };
-  const fetchDiscounts = async () => {
-    try {
-      const response = await axios.get(
-        "https://middleware-discountapp.mean3.ae/get-discounts",
-        {
-          headers: {
-            "api-key": "Do2j^jF",
-            "shop-name": "store-for-customer-account-test",
-            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-            "shopify-api-token": "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",
-          },
-        }
-      );
-
-      console.log("data success", response);
-      // return;
-
-      const discountDetails = await Promise.all(
-        response?.data?.data.map(async (discount) => {
-          const priceRule = await fetchPriceRule(discount.price_rule_id);
-          return {
-            code: discount.code,
-            priceRuleDetails: priceRule,
-          };
-        })
-      );
-
-      // const details = response?.data?.data.map(async (discount) => {
-      //   const priceRule = await fetchPriceRule(discount.price_rule_id);
-      //   return {
-      //     code: discount.code,
-      //     priceRuleDetails: priceRule,
-      //   };
-      // })
-
-      console.log("data main->>>>>>", discountDetails);
-      //  return;
-      setDiscounts(discountDetails);
-    } catch (error) {
-      console.error("Error fetching discounts:", error);
-    }
-  };
 
   useEffect(() => {
     // fetchDiscounts();
@@ -721,44 +626,6 @@ export default function AddDiscountShipping() {
       handleFetchPopulate();
     }
   }, [appliesTo]);
-  // useEffect(() => {
-  //   fetchDiscounts();
-  // }, [toastVisible]);
-  const columns = [
-    "Discount Code",
-    "Value Type",
-    "Value",
-    "Target Type",
-    "Target Selection",
-    // "Allocation Method",
-    // "Customer Selection",
-    // "Entitled Product IDs",
-    // "Start Date",
-    // "End Date",
-    // "Discount Code",
-    // "Discount Type",
-  ];
-
-  const rows = discounts.map((discount) => [
-    discount.code,
-    discount.priceRuleDetails?.value_type,
-    discount.priceRuleDetails?.value,
-    discount.priceRuleDetails?.target_type,
-    discount.priceRuleDetails?.target_selection,
-    // discount.priceRuleDetails?.allocation_method,
-    // discount.priceRuleDetails?.customer_selection,
-    // discount.priceRuleDetails.entitled_product_ids,
-    // discount.priceRuleDetails?.starts_at,
-    // discount.priceRuleDetails?.end_at,
-    // discount.discount_code,
-    // discount.discount_type,
-  ]);
-  const handleChange = (event) => {
-    const inputValue = event;
-    // Convert the value to a negative number
-    const negValue = -Math.abs(Number(inputValue));
-    setValue(negValue);
-  };
 
   function extractDate(dateString) {
     // console.log(dateString, "check date string?");
@@ -1002,16 +869,11 @@ export default function AddDiscountShipping() {
                 value: excludeShippingRatesValue + ".00",
               },
             }),
-          // ...(purhcaseTypeCheckselected !== "otp" &&
-          //   excludeShippingRates &&
-          //   excludeShippingRatesValue > 0 && {
-          //     prerequisite_shipping_price_range: {
-          //       less_than_or_equal_to: excludeShippingRatesValue,
-          //     },
-          //   }),
 
           usage_limit: usageLimitValue,
           once_per_customer: !!oneUserPerCustomerchecked,
+          combinesWithProductDiscounts: isProductDiscount,
+          combinesWithOrderDiscounts: isOrderDiscount,
         },
         discount_code: newDiscountCode,
         discount_type: "order",
@@ -1179,15 +1041,6 @@ export default function AddDiscountShipping() {
     // Cleanup the timeout if the component unmounts before the timeout completes
     return () => clearTimeout(timer);
   }, [toastVisible]);
-
-  const filteredValueTypeOptions =
-    targetType === "shipping_line"
-      ? [{ label: "Percentage", value: "percentage" }]
-      : valueTypeOptions;
-  const filteredAppliesToOptions =
-    targetType === "shipping_line"
-      ? [{ label: "Percentage", value: "percentage" }]
-      : AppliesToOptions;
 
   const handleFetchPopulate = async () => {
     setIsLoading(true);
@@ -1473,7 +1326,6 @@ export default function AddDiscountShipping() {
     // Set the discount code state
     setNewDiscountCode(discountCode);
   };
-  console.log("subscrioption ids", oneTimePurchaseProducts);
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
@@ -1827,6 +1679,15 @@ export default function AddDiscountShipping() {
             </div>
           </div>
           {/* sixth card */}
+
+          <DiscountCombinationUI
+            isOrderDiscount={isOrderDiscount}
+            isProductDiscount={isProductDiscount}
+            handleChangeisOrderDiscount={handleChangeIsOrderChecked}
+            handleChangeisProductDiscount={handleChangeIsProductChecked}
+            showShippingDiscount={false}
+          />
+          {/* seventh card */}
           <div
             style={{
               marginBottom: 5,
@@ -2080,4 +1941,5 @@ export default function AddDiscountShipping() {
 }
 
 // "{\"title\":{\"type\":\"string\"},\"discountCode\":{\"type\":\"string\"},\"discountType\":{\"type\":\"string\"},\"discountMethod\":{\"type\":\"string\"},\"discountClass\":{\"type\":\"string\"},\"endsAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"hasEndDate\":{\"type\":\"boolean\"},\"oncePerCustomer\":{\"type\":\"boolean\"},\"startsAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"totalUsageLimit\":{\"type\":\"string\"},\"hasUsageLimit\":{\"type\":\"boolean\"},\"customerEligibility\":{\"type\":\"string\"},\"selectedCustomers\":{\"type\":\"array\",\"items\":{}},\"selectedCustomerGroups\":{\"type\":\"array\",\"items\":{}},\"selectedCustomerSegments\":{\"type\":\"array\",\"items\":{}},\"combinesWithProductDiscounts\":{\"type\":\"boolean\"},\"combinesWithOrderDiscounts\":{\"type\":\"boolean\"},\"combinesWithShippingDiscounts\":{\"type\":\"boolean\"},\"appliesTo\":{\"type\":\"string\"},\"selectedCollections\":{\"type\":\"array\",\"items\":{}},\"selectedProductVariantsDescriptors\":{\"type\":\"array\",\"items\":{}},\"percentageDiscountValue\":{\"type\":\"string\"},\"fixedAmountDiscountValue\":{\"type\":\"string\"},\"discountValueType\":{\"type\":\"string\"},\"oncePerOrder\":{\"type\":\"boolean\"},\"minimumRequirement\":{\"type\":\"string\"},\"minimumRequirementQuantity\":{\"type\":\"string\"},\"minimumRequirementSubtotal\":{\"type\":\"string\"},\"freeShippingPurchaseType\":{\"type\":\"string\"},\"recurringPaymentType\":{\"type\":\"string\"},\"purchaseType\":{\"type\":\"string\"},\"multiplePaymentsLimit\":{\"type\":\"string\"},\"bxgyHasAllocationLimit\":{\"type\":\"boolean\"},\"bxgyAllocationLimit\":{\"type\":\"string\"},\"bxgyCustomerBuysValueType\":{\"type\":\"string\"},\"bxgyCustomerBuysType\":{\"type\":\"string\"},\"bxgyCustomerBuysCollections\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerBuysProducts\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerBuysQuantity\":{\"type\":\"string\"},\"bxgyCustomerBuysAmount\":{\"type\":\"string\"},\"bxgyCustomerGetsType\":{\"type\":\"string\"},\"bxgyCustomerGetsCollections\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerGetsProducts\":{\"type\":\"array\",\"items\":{}},\"bxgyCustomerGetsQuantity\":{\"type\":\"string\"},\"bxgyCustomerGetsDiscountType\":{\"type\":\"string\"},\"bxgyCustomerGetsDiscountAmount\":{\"type\":\"string\"},\"bxgyCustomerGetsDiscountPercentage\":{\"type\":\"string\"},\"selectedCountries\":{\"type\":\"array\",\"items\":{}},\"countriesSelectionType\":{\"type\":\"string\"},\"hasExcludeShippingRatesOver\":{\"type\":\"boolean\"},\"excludeShippingRatesOver\":{\"type\":\"string\"},\"channelIds\":{\"type\":\"array\",\"items\":{}},\"metafields\":{\"type\":\"array\",\"items\":{}}}"
-// "{\"title\":{\"value\":\"\"},\"discountCode\":{\"value\":\"CWX16TCBKMNP\"},\"discountType\":{\"value\":\"FreeShipping\"},\"discountMethod\":{\"value\":\"Code\"},\"discountClass\":{\"value\":\"SHIPPING\"},\"endsAt\":{\"value\":\"2024-09-20T05:59:46.925Z\"},\"hasEndDate\":{\"value\":false},\"oncePerCustomer\":{\"value\":false},\"startsAt\":{\"value\":\"2024-09-20T05:59:46.925Z\"},\"totalUsageLimit\":{\"value\":\"\"},\"hasUsageLimit\":{\"value\":false},\"customerEligibility\":{\"value\":\"EVERYONE\"},\"selectedCustomers\":{\"value\":[]},\"selectedCustomerGroups\":{\"value\":[]},\"selectedCustomerSegments\":{\"value\":[]},\"combinesWithProductDiscounts\":{\"value\":false},\"combinesWithOrderDiscounts\":{\"value\":false},\"combinesWithShippingDiscounts\":{\"value\":false},\"appliesTo\":{\"value\":\"ORDER\"},\"selectedCollections\":{\"value\":[]},\"selectedProductVariantsDescriptors\":{\"value\":[]},\"percentageDiscountValue\":{\"value\":\"\"},\"fixedAmountDiscountValue\":{\"value\":\"\"},\"discountValueType\":{\"value\":\"PERCENTAGE\"},\"oncePerOrder\":{\"value\":true},\"minimumRequirement\":{\"value\":\"NONE\"},\"minimumRequirementQuantity\":{\"value\":\"\"},\"minimumRequirementSubtotal\":{\"value\":\"\"},\"freeShippingPurchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"recurringPaymentType\":{\"value\":\"FIRST_PAYMENT\"},\"purchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"multiplePaymentsLimit\":{\"value\":\"\"},\"bxgyHasAllocationLimit\":{\"value\":false},\"bxgyAllocationLimit\":{\"value\":\"\"},\"bxgyCustomerBuysValueType\":{\"value\":\"QUANTITY\"},\"bxgyCustomerBuysType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerBuysCollections\":{\"value\":[]},\"bxgyCustomerBuysProducts\":{\"value\":[]},\"bxgyCustomerBuysQuantity\":{\"value\":\"\"},\"bxgyCustomerBuysAmount\":{\"value\":\"\"},\"bxgyCustomerGetsType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerGetsCollections\":{\"value\":[]},\"bxgyCustomerGetsProducts\":{\"value\":[]},\"bxgyCustomerGetsQuantity\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountType\":{\"value\":\"PERCENTAGE\"},\"bxgyCustomerGetsDiscountAmount\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountPercentage\":{\"value\":\"\"},\"selectedCountries\":{\"value\":[]},\"countriesSelectionType\":{\"value\":\"ALL_COUNTRIES\"},\"hasExcludeShippingRatesOver\":{\"value\":true},\"excludeShippingRatesOver\":{\"value\":\"21.00\"},\"channelIds\":{\"value\":[]},\"metafields\":{\"value\":[]}}"
+// "{\"title\":{\"value\":\"\"},\"discountCode\":{\"value\":\"CWX16TCBKMNP\"},\"discountType\":{\"value\":\"FreeShipping\"},\"discountMethod\":{\"value\":\"Code\"},\"discountClass\":{\"value\":\"SHIPPING\"},\"endsAt\":{\"value\":\"2024-09-20T05:59:46.925Z\"},\"hasEndDate\":{\"value\":false},\"oncePerCustomer\":{\"value\":false},\"startsAt\":{\"value\":\"2024-09-20T05:59:46.925Z\"},\"totalUsageLimit\":{\"value\":\"\"},\"hasUsageLimit\":{\"value\":false},\"customerEligibility\":{\"value\":\"EVERYONE\"},\"selectedCustomers\":{\"value\":[]},\"selectedCustomerGroups\":{\"value\":[]},\"selectedCustomerSegments\":{\"value\":[]},\"f\":{\"value\":false},\"combinesWithOrderDiscounts\":{\"value\":false},\"combinesWithShippingDiscounts\":{\"value\":false},\"appliesTo\":{\"value\":\"ORDER\"},\"selectedCollections\":{\"value\":[]},\"selectedProductVariantsDescriptors\":{\"value\":[]},\"percentageDiscountValue\":{\"value\":\"\"},\"fixedAmountDiscountValue\":{\"value\":\"\"},\"discountValueType\":{\"value\":\"PERCENTAGE\"},\"oncePerOrder\":{\"value\":true},\"minimumRequirement\":{\"value\":\"NONE\"},\"minimumRequirementQuantity\":{\"value\":\"\"},\"minimumRequirementSubtotal\":{\"value\":\"\"},\"freeShippingPurchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"recurringPaymentType\":{\"value\":\"FIRST_PAYMENT\"},\"purchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"multiplePaymentsLimit\":{\"value\":\"\"},\"bxgyHasAllocationLimit\":{\"value\":false},\"bxgyAllocationLimit\":{\"value\":\"\"},\"bxgyCustomerBuysValueType\":{\"value\":\"QUANTITY\"},\"bxgyCustomerBuysType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerBuysCollections\":{\"value\":[]},\"bxgyCustomerBuysProducts\":{\"value\":[]},\"bxgyCustomerBuysQuantity\":{\"value\":\"\"},\"bxgyCustomerBuysAmount\":{\"value\":\"\"},\"bxgyCustomerGetsType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerGetsCollections\":{\"value\":[]},\"bxgyCustomerGetsProducts\":{\"value\":[]},\"bxgyCustomerGetsQuantity\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountType\":{\"value\":\"PERCENTAGE\"},\"bxgyCustomerGetsDiscountAmount\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountPercentage\":{\"value\":\"\"},\"selectedCountries\":{\"value\":[]},\"countriesSelectionType\":{\"value\":\"ALL_COUNTRIES\"},\"hasExcludeShippingRatesOver\":{\"value\":true},\"excludeShippingRatesOver\":{\"value\":\"21.00\"},\"channelIds\":{\"value\":[]},\"metafields\":{\"value\":[]}}"
+// "{\"title\":{\"value\":\"CC_S9739R00YS\"},\"discountCode\":{\"value\":\"CC_S9739R00YS\"},\"discountType\":{\"value\":\"FreeShipping\"},\"discountMethod\":{\"value\":\"Code\"},\"discountClass\":{\"value\":\"SHIPPING\"},\"endsAt\":{\"value\":\"2024-09-22T03:59:59.999Z\"},\"hasEndDate\":{\"value\":false},\"oncePerCustomer\":{\"value\":false},\"startsAt\":{\"value\":\"2024-09-21T22:07:00.000Z\"},\"totalUsageLimit\":{\"value\":\"\"},\"hasUsageLimit\":{\"value\":false},\"customerEligibility\":{\"value\":\"EVERYONE\"},\"selectedCustomers\":{\"value\":[]},\"selectedCustomerGroups\":{\"value\":[]},\"selectedCustomerSegments\":{\"value\":[]},\"combinesWithProductDiscounts\":{\"value\":false},\"combinesWithOrderDiscounts\":{\"value\":true},\"combinesWithShippingDiscounts\":{\"value\":false},\"appliesTo\":{\"value\":\"ORDER\"},\"selectedCollections\":{\"value\":[]},\"selectedProductVariantsDescriptors\":{\"value\":[]},\"percentageDiscountValue\":{\"value\":\"\"},\"fixedAmountDiscountValue\":{\"value\":\"\"},\"discountValueType\":{\"value\":\"PERCENTAGE\"},\"oncePerOrder\":{\"value\":true},\"minimumRequirement\":{\"value\":\"NONE\"},\"minimumRequirementQuantity\":{\"value\":\"\"},\"minimumRequirementSubtotal\":{\"value\":\"\"},\"freeShippingPurchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"recurringPaymentType\":{\"value\":\"FIRST_PAYMENT\"},\"purchaseType\":{\"value\":\"ONE_TIME_PURCHASE\"},\"multiplePaymentsLimit\":{\"value\":\"\"},\"bxgyHasAllocationLimit\":{\"value\":false},\"bxgyAllocationLimit\":{\"value\":\"\"},\"bxgyCustomerBuysValueType\":{\"value\":\"QUANTITY\"},\"bxgyCustomerBuysType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerBuysCollections\":{\"value\":[]},\"bxgyCustomerBuysProducts\":{\"value\":[]},\"bxgyCustomerBuysQuantity\":{\"value\":\"\"},\"bxgyCustomerBuysAmount\":{\"value\":\"\"},\"bxgyCustomerGetsType\":{\"value\":\"PRODUCTS\"},\"bxgyCustomerGetsCollections\":{\"value\":[]},\"bxgyCustomerGetsProducts\":{\"value\":[]},\"bxgyCustomerGetsQuantity\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountType\":{\"value\":\"PERCENTAGE\"},\"bxgyCustomerGetsDiscountAmount\":{\"value\":\"\"},\"bxgyCustomerGetsDiscountPercentage\":{\"value\":\"\"},\"selectedCountries\":{\"value\":[]},\"countriesSelectionType\":{\"value\":\"ALL_COUNTRIES\"},\"hasExcludeShippingRatesOver\":{\"value\":false},\"excludeShippingRatesOver\":{\"value\":\"\"},\"channelIds\":{\"value\":[]},\"metafields\":{\"value\":[]}}"
