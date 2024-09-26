@@ -47,9 +47,13 @@ function Extension() {
   const [hovered, setHovered] = useState(false);
   const [page, setPage] = useState(null);
   const [prevPage, setPrevPage] = useState(null);
-  const { ui } = useApi();
+  const api = useApi();
   const { id } = useAuthenticatedAccountCustomer();
-
+  const fetchData = async () => {
+    const response = await api.fetch("api/prod");
+    const json = await response.json();
+    console.log("checkup", json);
+  };
   console.log("customerrrr", id);
   // Function to filter discounts based on customers array
   // Function to filter discounts based on customers array
@@ -86,12 +90,12 @@ function Extension() {
     try {
       setLoading(true);
       let apiUrl =
-        "https://middleware-discountapp.mean3.ae/get-discounts?limit=50";
+        "https://middleware-discountapp.mean3.ae/get-discounts?limit=12";
       if (isPaginate) {
         apiUrl += `&page=${isPaginate}`;
       } else {
         apiUrl =
-          "https://middleware-discountapp.mean3.ae/get-discounts?limit=50";
+          "https://middleware-discountapp.mean3.ae/get-discounts?limit=12";
       }
       console.log(
         "check function gets accurate page info?",
@@ -321,6 +325,7 @@ function Extension() {
 
   useEffect(() => {
     // fetchShowDetails();
+    fetchData();
     fetchDiscounts();
   }, []);
   console.log("detail", discountCodes);
@@ -335,6 +340,7 @@ function Extension() {
         Store-wide discounts
       </Text>
       <Grid
+        inlineAlignment="center"
         columns={["auto", "auto", "auto", "auto"]}
         // rows={[300, 300]}
         spacing="loose"
@@ -346,39 +352,14 @@ function Extension() {
           discountCodes.map((discount, index) => (
             <Card roundedAbove="sm" key={index}>
               <View border="none" padding="base" style={{ overflow: "hidden" }}>
-                <BlockStack
-                  display="inline"
-                  // flexDirection="column"
-                  spacing="extraTight"
-                  // padding="loose"
-                >
+                <BlockStack spacing="base">
+                  {" "}
+                  {/* Base spacing between elements */}
+                  {/* Heading */}
                   <InlineStack blockAlignment="center">
                     <Text emphasis="bold">{discount.code}</Text>
                     <Button
-                      onPress={() => {
-                        var textArea = document.createElement("textarea");
-                        textArea.value = "anc";
-                        // Avoid scrolling to bottom
-                        textArea.style.top = "0";
-                        textArea.style.left = "0";
-                        textArea.style.position = "fixed";
-
-                        document.body.appendChild(textArea);
-                        textArea.focus();
-                        textArea.select();
-
-                        try {
-                          var successful = document.execCommand("copy");
-                          console.log(
-                            "Copying text command was " +
-                              (successful ? "successful" : "unsuccessful")
-                          );
-                        } catch (err) {
-                          console.error("Fallback: Oops, unable to copy", err);
-                        }
-
-                        document.body.removeChild(textArea);
-                      }}
+                      onPress={() => navigator.clipboard.writeText("abc")}
                       inlineAlignment="start"
                       kind="tertiary"
                       appearance="accent"
@@ -389,10 +370,13 @@ function Extension() {
                       />
                     </Button>
                   </InlineStack>
-                  {/* <BlockSpacer spacing="base" /> */}
+                  {/* Spacer between the heading and list */}
+                  {/* <BlockSpacer spacing="tight" /> */}
+                  {/* Type and method section */}
                   <Text emphasis="bold">Type and method</Text>
-                  {/* <BlockSpacer spacing="base" /> */}
-                  <List>
+                  <List spacing="tight">
+                    {" "}
+                    {/* Adjust spacing between list items */}
                     <ListItem>
                       {discount.priceRuleDetails?.target_type ===
                       "shipping_line"
@@ -404,24 +388,18 @@ function Extension() {
                             ?.prerequisite_to_entitlement_quantity_ratio
                             ?.entitled_quantity > 0
                         ? "BuyXGetY Free"
-                        : discount.priceRuleDetails?.entitled_collection_ids
-                            ?.length === 0 &&
-                          discount.priceRuleDetails?.entitled_product_ids
-                            ?.length === 0 &&
-                          discount.priceRuleDetails?.value_type ===
-                            "fixed_amount"
-                        ? "X$ off an order"
                         : "Amount off products"}
                     </ListItem>
                     <ListItem>Code</ListItem>
                   </List>
-                  {/* <BlockSpacer spacing="base" /> */}
+                  {/* Spacer between sections */}
+                  {/* <BlockSpacer spacing="tight" /> */}
+                  {/* Details section */}
                   <Text emphasis="bold">Details</Text>
-                  {/* <BlockSpacer spacing="base" /> */}
-                  <List>
+                  <List spacing="tight">
+                    {/* Adjust list item spacing here too */}
                     <ListItem>For Online Store</ListItem>
                     <ListItem>
-                      {" "}
                       <Button
                         inlineAlignment="start"
                         onPress={() =>
@@ -529,8 +507,10 @@ function Extension() {
                           ?.length === 0 &&
                         discount.priceRuleDetails?.entitled_product_ids
                           ?.length === 0 &&
-                        discount.priceRuleDetails?.value_type ===
-                          "fixed_amount" ? (
+                        (discount.priceRuleDetails?.value_type ===
+                          "fixed_amount" ||
+                          discount.priceRuleDetails?.value_type ===
+                            "percentage") ? (
                           <Text
                             style={{
                               whiteSpace: "nowrap",
@@ -541,14 +521,18 @@ function Extension() {
                             variant="headingMd"
                             fontWeight="bold"
                           >
-                            avail -$
+                            avail{" "}
+                            {discount.priceRuleDetails?.value_type !==
+                              "percentage" && "$"}
                             {Math.abs(
                               Math.round(
                                 parseFloat(
                                   discount.priceRuleDetails?.value ?? 0
                                 )
                               )
-                            )}{" "}
+                            )}
+                            {discount.priceRuleDetails?.value_type !==
+                              "fixed_amount" && "%"}{" "}
                             off an order
                           </Text>
                         ) : discount.priceRuleDetails?.target_type ===
@@ -629,7 +613,7 @@ function Extension() {
                               !discount.priceRuleDetails
                                 .prerequisite_subtotal_range
                                 ?.greater_than_or_equal_to
-                            ) && "avail off"}
+                            ) && "Avail off"}
                             {discount.priceRuleDetails?.value_type !==
                               "percentage" &&
                             !(
@@ -671,7 +655,7 @@ function Extension() {
                               !discount.priceRuleDetails
                                 .prerequisite_subtotal_range
                                 ?.greater_than_or_equal_to
-                            ) && `avail off${" "}`}
+                            ) && `Avail off${" "}`}
                             {discount.priceRuleDetails?.prerequisite_product_ids
                               ?.length > 0 ||
                             discount.priceRuleDetails?.entitled_product_ids

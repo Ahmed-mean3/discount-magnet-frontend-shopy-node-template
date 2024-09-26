@@ -47,7 +47,7 @@ import DiscountCodeUI from "../components/DiscountCodeUI";
 import DiscountCombinationUI from "../components/DiscountCombinationUI";
 // import { useNavigate } from "@shopify/app-bridge-react";
 
-export default function AddDiscountShipping() {
+export default function AddDiscountBuyXGetYFree() {
   const navigate = useNavigate();
   const [filterValue, setFilterValue] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,19 +62,28 @@ export default function AddDiscountShipping() {
   const [targetType, setTargetType] = useState("line_item");
   const [targetSelection, setTargetSelection] = useState("all");
   const [allocationMethod, setAllocationMethod] = useState("across");
-  const [valueType, setValueType] = useState("fixed_amount");
+  const [valueType, setValueType] = useState("MQI");
+  const [_appliesTo, set_AppliesTo] = useState("specific_product");
   const [appliesTo, setAppliesTo] = useState("specific_product");
   const [productIds, setProductIds] = useState([]);
   const [ProductOptions, setProductOptions] = useState([]);
+  const [ProductOptions_, setProductOptions_] = useState([]);
   const [prodIds, setProdIds] = useState([]);
+  const [_prodIds, set_ProdIds] = useState([]);
   const [customerIds, setCustomerIds] = useState([]);
   const [countriesIds, setCountriesIds] = useState([]);
   const [value, setValue] = useState("");
+  const [preReqQuantity, setPreReqQuantity] = useState("");
+  const [entitledQuantity, setEntitledQuantity] = useState("");
   const [shippingDiscountValue, setShippingDiscountValue] = useState("");
   const [shippingError, setShippingError] = useState(false);
   const [titleError, setTitleError] = useState(false);
   const [amountError, setAmountError] = useState(false);
   const [expiryError, setExpiryError] = useState(false);
+  const [preReqQuantityValueError, setPreReqQuantityValueError] =
+    useState(false);
+  const [entitledQuantityValueError, setEntitledQuantityValueError] =
+    useState(false);
   const [valueError, setValueError] = useState(false);
   const [codeError, setCodeError] = useState(false);
   const [typeError, setTypeError] = useState(false);
@@ -82,11 +91,13 @@ export default function AddDiscountShipping() {
   const [customerSelection, setCustomerSelection] = useState("all");
   const [customerSelectionError, setCustomerSelectionError] = useState(false);
   const [productIdsError, setProductIdsError] = useState(false);
+  const [productIdsError_, setProductIdsError_] = useState(false);
   const [startsAtTime, setStartsAtTime] = useState(formatTime(new Date()));
   const [endAtTime, setEndAtTime] = useState(formatTime(new Date()));
   const [discountCodeType, setDiscountCodeType] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [CollectionOptions, setCollectionOptions] = useState([]);
+  const [_CollectionOptions, set_CollectionOptions] = useState([]);
 
   const [
     prerequisiteToEntitlementQuantityRatio,
@@ -98,15 +109,17 @@ export default function AddDiscountShipping() {
     setSelectedMethod(value);
   };
 
+  const [_isLoading, set_IsLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [modalLoader, setModalLoader] = useState(false);
   const [usageLimitchecked, setUsageLimitchecked] = useState(false);
   const [usageLimitValue, setUsageLimitValue] = useState(0);
-  const [minPurchaseReq, setMinPurchaseReq] = useState(0);
-  const [minQuantityReq, setMinQuantityReq] = useState(0);
+  const [minPercentOffReq, setMinPercentOffReq] = useState(0);
+  const [minAmountOffReq, setMinAmountOffReq] = useState(0);
   const [usageLimitCodeError, setUsageLimitCodeError] = useState(0);
-  const [minPurchaseReqError, setMinPurchaseReqError] = useState(false);
-  const [minQuantityReqError, setMinQuantityReqError] = useState(false);
+  const [minPercentOffReqError, setMinPercentOffReqError] = useState(false);
+  const [_minPercentOffReqError, set_MinPercentOffReqError] = useState(false);
+  const [minAmountOffReqError, setMinAmountOffReqError] = useState(false);
   const [oneUserPerCustomerchecked, setOneUserPerCustomerchecked] =
     useState(false);
   const [excludeShippingRates, setExcludeShippingRates] = useState(false);
@@ -114,7 +127,7 @@ export default function AddDiscountShipping() {
   const [excludeShippingRatesValueError, setExcludeShippingRatesValueError] =
     useState(false);
   const fetch = useAuthenticatedFetch();
-  const [minRequirementSelected, setMinRequirementSelected] = useState("NMR");
+  const [discountedValue, setDiscountedValue] = useState("free");
   const [selected, setSelected] = useState("all");
   const [customerSelected, setCustomerSelected] = useState("all");
   const [purchaseTypeSelected, setPurchaseTypeSelected] = useState("otp");
@@ -122,10 +135,15 @@ export default function AddDiscountShipping() {
     useState(false);
   const [checkselected, setCheckSelected] = useState("all");
   const [checkCustomerSelected, setCheckCustomerSelected] = useState("all");
-  const [purhcaseTypeCheckselected, setPurhcaseTypeCheckSelected] =
-    useState("otp");
-  const [minRequirementCheckselected, setMinRequirementCheckSelected] =
-    useState("NMR");
+  const AppliesToOptions = [
+    { label: "Specific Collection", value: "specific_collection" },
+    { label: "Specific Product", value: "specific_product" },
+  ];
+  const filteredAppliesToOptions =
+    targetType === "shipping_line"
+      ? [{ label: "Percentage", value: "percentage" }]
+      : AppliesToOptions;
+  const [discountedValueCheck, setDiscountedValueCheck] = useState("free");
   console.log("check selected", checkselected);
   const [textFieldValue, setTextFieldValue] = useState("");
   const handleTextFieldChange = useCallback(
@@ -134,66 +152,60 @@ export default function AddDiscountShipping() {
   );
 
   useEffect(() => {
-    if (minRequirementCheckselected === "MPA") {
-      setMinQuantityReq(0);
-    } else if (minRequirementCheckselected === "MQI") {
-      setMinPurchaseReq(0);
+    if (discountedValueCheck === "percentage") {
+      setMinAmountOffReq(0);
+    } else if (discountedValueCheck === "fixed_amount") {
+      setMinPercentOffReq(0);
+    } else if (discountedValueCheck === "free") {
+      setMinPercentOffReq(0);
+      setMinAmountOffReq(0);
     }
-  }, [minRequirementCheckselected, minPurchaseReq, minQuantityReq]);
+  }, [discountedValueCheck, minPercentOffReq, minAmountOffReq]);
   const renderChildren = useCallback(
     (selected) =>
       selected &&
-      (minRequirementCheckselected === "MPA" ||
-        minRequirementCheckselected === "MQI") ? (
-        <>
-          <div style={{ width: "20%" }}>
-            <PolarisTextField
-              prefix={minRequirementCheckselected === "MQI" ? "" : "$"}
-              type="number"
-              label=""
-              value={
-                minRequirementCheckselected === "MPA"
-                  ? minPurchaseReq
-                  : minQuantityReq
-              }
-              onChange={(value) => {
-                const parsedValue = parseInt(value, 10); // Parse value to integer
+      (discountedValueCheck === "percentage" ||
+        discountedValueCheck === "fixed_amount") ? (
+        <div style={{ width: "20%" }}>
+          <PolarisTextField
+            prefix={discountedValueCheck === "percentage" ? "" : "$"}
+            suffix={discountedValueCheck === "fixed_amount" ? "" : "%"}
+            type="number"
+            label=""
+            value={
+              discountedValueCheck === "percentage"
+                ? minPercentOffReq
+                : minAmountOffReq
+            }
+            onChange={(value) => {
+              const parsedValue = parseInt(value, 10); // Parse value to integer
 
-                // Prevent negative values
-                if (parsedValue >= 0 || value === "") {
-                  minRequirementCheckselected === "MPA"
-                    ? setMinPurchaseReq(value)
-                    : setMinQuantityReq(value);
-                }
-              }}
-              error={
-                minRequirementCheckselected === "MPA" && minPurchaseReqError
-                  ? "Minimum purchase value required."
-                  : minRequirementCheckselected === "MQI" && minQuantityReqError
-                  ? "Minimum quantity value is required"
-                  : ""
+              // Prevent negative values
+              if (parsedValue > 0 || value === "") {
+                discountedValueCheck === "percentage" && parsedValue < 101
+                  ? setMinPercentOffReq(value)
+                  : discountedValueCheck === "fixed_amount"
+                  ? setMinAmountOffReq(value)
+                  : null;
               }
-            />
-          </div>
-          <div
-            style={{
-              // marginLeft: 25,
-              marginTop: 5,
-              fontSize: "13px",
-              color: "gray",
-              fontWeight: "500",
             }}
-          >
-            Applies only to selected products.
-          </div>
-        </>
+            error={
+              discountedValueCheck === "percentage" && _minPercentOffReqError
+                ? "Minimum Percentage value required."
+                : discountedValueCheck === "fixed_amount" &&
+                  minAmountOffReqError
+                ? "Minimum amount off value is required"
+                : ""
+            }
+          />
+        </div>
       ) : null,
     [
-      minPurchaseReq,
-      minQuantityReq,
-      minRequirementCheckselected,
-      minPurchaseReqError,
-      minQuantityReqError,
+      minPercentOffReq,
+      minAmountOffReq,
+      discountedValueCheck,
+      minPercentOffReqError,
+      minAmountOffReqError,
     ]
   );
   const handleChangeCountriesSelection = useCallback((value) => {
@@ -212,16 +224,14 @@ export default function AddDiscountShipping() {
   }, []);
   const handleChangePurhcaseTypeSelection = useCallback((value) => {
     {
-      const [_selected] = value;
-      setPurhcaseTypeCheckSelected(_selected);
       setPurchaseTypeSelected(value);
     }
   }, []);
-  const handleChangeMinRequirementSelection = useCallback((value) => {
+  const handleChangeDiscountedValue = useCallback((value) => {
     {
       const [_selected] = value;
-      setMinRequirementCheckSelected(_selected);
-      setMinRequirementSelected(value);
+      setDiscountedValueCheck(_selected);
+      setDiscountedValue(value);
     }
   }, []);
 
@@ -247,10 +257,25 @@ export default function AddDiscountShipping() {
       setExcludeShippingRatesValueError(false);
     }
   };
+  const valueTypeOptions = [
+    { label: "Minimum quantity of items", value: "MQI" },
+    { label: "Minimum purchase amount", value: "MPA" },
+  ];
+  const valuePurchaseOptions = [
+    { label: "One-time purhcase", value: "otp" },
+    // { label: "Specific customer segments", value: "SCS" },
+    { label: "Subscription", value: "sub" },
+    { label: "Both", value: "both" },
+  ];
+  const filteredValueTypeOptions =
+    targetType === "shipping_line"
+      ? [{ label: "Percentage", value: "percentage" }]
+      : valueTypeOptions;
 
   const [selectedTags, setSelectedTags] = useState([]);
 
   const [_selectedTags, set_SelectedTags] = useState([]);
+  const [_selectedTags_, set_SelectedTags_] = useState([]);
   const [checked, setChecked] = useState(false);
   const [CustomerOptions, setCustomerOptions] = useState([]);
   const [CountriesIdsError, setCountriesIdsError] = useState(false);
@@ -290,25 +315,51 @@ export default function AddDiscountShipping() {
 
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [_selectedOptions, set_SelectedOptions] = useState([]);
+  const [_selectedOptions_, set_SelectedOptions_] = useState([]);
   const [CountriesOptions, setCountriesOptions] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [_inputValue, set_InputValue] = useState("");
+  const [_inputValue_, set_InputValue_] = useState("");
   const [options, setOptions] = useState([]);
   const [_options, set_Options] = useState([]);
+  const [_options_, set_Options_] = useState([]);
   const [subscriptionProducts, setSubscriptionProducts] = useState([]);
   const [oneTimePurchaseProducts, setOneTimePurchaseProducts] = useState([]);
   const [isProductDiscount, setIsProductDiscount] = useState(false);
 
   const [isOrderDiscount, setIsOrderDiscount] = useState(false);
 
+  //get products or collection side effect.
   useEffect(() => {
-    const updatedOptions = CountriesOptions.map((collection) => ({
-      value: collection.value,
-      label: collection.label,
-    }));
+    const updatedOptions =
+      appliesTo === "specific_collection"
+        ? CollectionOptions.map((collection) => ({
+            value: collection.value,
+            label: collection.label,
+          }))
+        : ProductOptions.map((product) => ({
+            value: product.value,
+            label: product.label,
+          }));
 
     set_Options(updatedOptions);
-  }, [CountriesOptions]);
+  }, [ProductOptions, CollectionOptions, appliesTo]);
+
+  //buy products or collection side effect.
+  useEffect(() => {
+    const updatedOptions =
+      _appliesTo === "specific_collection"
+        ? _CollectionOptions.map((collection) => ({
+            value: collection.value,
+            label: collection.label,
+          }))
+        : ProductOptions_.map((product) => ({
+            value: product.value,
+            label: product.label,
+          }));
+
+    set_Options_(updatedOptions);
+  }, [ProductOptions_, _appliesTo, _CollectionOptions]);
   useEffect(() => {
     const updatedOptions = CustomerOptions.map((customer) => ({
       value: customer.value,
@@ -382,24 +433,39 @@ export default function AddDiscountShipping() {
   // console.log(newDate); // Output: 2024-07-06
 
   console.log(options, "000000000000000000000000");
+  const _updateText_ = useCallback(
+    (value) => {
+      set_InputValue_(value);
+
+      if (value === "") {
+        set_Options_(
+          ProductOptions_.map((product) => ({
+            value: product.value,
+            label: product.label,
+          }))
+        );
+        return;
+      }
+
+      const filterRegex = new RegExp(value, "i");
+      const resultOptions = _options_.filter((option) =>
+        option.label.toLowerCase().includes(value.toLowerCase())
+      );
+      console.log("matching out..", resultOptions);
+      set_Options_(resultOptions);
+    },
+    [options]
+  );
   const _updateText = useCallback(
     (value) => {
       set_InputValue(value);
 
       if (value === "") {
         set_Options(
-          CountriesOptions.length > 0
-            ? CountriesOptions.map((collection) => ({
-                value: collection.value,
-                label: collection.label,
-              }))
-            : [
-                { value: 1, label: "Rustic" },
-                { value: 2, label: "Antique" },
-                { value: 3, label: "Vinyl" },
-                { value: 4, label: "Vintage" },
-                { value: 5, label: "Refurbished" },
-              ]
+          ProductOptions.map((product) => ({
+            value: product.value,
+            label: product.label,
+          }))
         );
         return;
       }
@@ -445,14 +511,17 @@ export default function AddDiscountShipping() {
     // Format hours and minutes to always be two digits
     const formattedHours = hours < 10 ? `0${hours}` : hours;
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    const formattedTime = convertTo12HourFormat(
+      `${formattedHours}:${formattedMinutes}`
+    ); // Convert 24-hour to 12-hour
 
     // Return formatted time string
     return `${formattedHours}:${formattedMinutes}`;
   }
   const updateSelection = useCallback(
     (selected) => {
-      if (prodIds.length > 0) {
-        setProductIdsError(false);
+      if (customerIds.length > 0) {
+        setCustomerIdsError(false);
       }
       setSelectedOptions(selected);
 
@@ -489,18 +558,62 @@ export default function AddDiscountShipping() {
       });
       setSelectedTags(selectedValue);
     },
-    [options]
+    [options, customerIdsError]
+  );
+  const _updateSelection_ = useCallback(
+    (selected) => {
+      console.log("hilal ki dingdong bubble", selected);
+      // return;
+      if (_prodIds.length > 0) {
+        setProductIdsError_(false);
+      }
+      set_SelectedOptions_(selected);
+
+      set_ProdIds((prev) => {
+        const updatedSet = new Set(prev);
+
+        // Iterate through previously selected items and remove those not in the current selection
+        prev.forEach((item) => {
+          if (!selected.includes(item)) {
+            updatedSet.delete(item);
+          }
+        });
+
+        // Add all currently selected items to the Set
+        selected.forEach((item) => updatedSet.add(item));
+
+        // Convert the Set back to an array and return it
+        return Array.from(updatedSet);
+      });
+
+      const selectedValue = selected.map((selectedItem) => {
+        // Find the option that matches the selected item's value
+        const matchedOption = _options_.find(
+          (option) => option.value === selectedItem
+        );
+
+        // If a match is found, capitalize the first word of the label and return it
+        if (matchedOption) {
+          const label = matchedOption.label;
+          return label.charAt(0).toUpperCase() + label.slice(1);
+        }
+
+        return null; // Return null if no match is found
+      });
+      set_SelectedTags_(selectedValue);
+    },
+    [_options_, _selectedTags_, productIdsError_, _prodIds, _selectedOptions_]
   );
   const _updateSelection = useCallback(
     (selected) => {
       // console.log("selected", selected);
       // return;
-      if (countriesIds.length > 0) {
-        setCountriesIdsError(false);
+      if (prodIds.length > 0) {
+        setProductIdsError(false);
       }
       set_SelectedOptions(selected);
 
-      setCountriesIds((prev) => {
+      setProdIds((prev) => {
         const updatedSet = new Set(prev);
 
         // Iterate through previously selected items and remove those not in the current selection
@@ -533,65 +646,51 @@ export default function AddDiscountShipping() {
       });
       set_SelectedTags(selectedValue);
     },
-    [_options]
+    [_options, productIdsError, prodIds, _selectedTags, _selectedOptions]
   );
-  const [items, setItems] = useState(["Free shipping", "Code"]);
+  const [items, setItems] = useState(["Buy X Get Y", "Code"]);
   const [items_two, setItems_two] = useState([
     "Can't combine with other discounts",
   ]);
 
-  const handleFetchCollectionPopulate = async () => {
-    // setIsLoading(true);
-    const apiUrl = `https://middleware-discountapp.mean3.ae/get-collections?limit=50`;
+  const handleFetchCollectionPopulate = async (isApply = true) => {
+    if (isApply) set_IsLoading(true);
+    else {
+      setIsLoading(true);
+    }
 
-    await axios
-      .get(apiUrl, {
-        headers: {
-          "api-key": "Do2j^jF",
-          "shop-name": "store-for-customer-account-test",
-          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-          "shopify-api-token": "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",
-          "Content-Type": "application/json",
-        },
+    await fetch("api/collection", { method: "GET" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json(); // Assuming the response is in JSON format
       })
-
       .then((data) => {
-        // console.log(data.data); // This will log the fetched products
-        // You can now use the 'data' variable to access your fetched products
-        // Mapping the products data to the desired format
-        const formattedCollection = data.data.data.map((collection) => ({
+        console.log("Fetched collections:", data); // Debugging line
+        const formattedCollection = data.map((collection) => ({
           label: collection.title,
           value: collection.id,
         }));
-        console.log("Fetched collections:", formattedCollection); // Debugging line
-        // const deselectedOptions = useMemo(() => formattedCollection, []);
-        // console.log(formattedCollection);
-        setCollectionOptions(formattedCollection);
-        // setIsLoading(false);
+
+        if (isApply) {
+          set_CollectionOptions(formattedCollection);
+          set_IsLoading(false);
+        } else {
+          setCollectionOptions(formattedCollection);
+          setIsLoading(false);
+        }
       })
       .catch((error) => {
-        // setIsLoading(false);
-        console.log("There was an error fetching the products:", error);
+        if (isApply) {
+          set_IsLoading(false);
+        } else {
+          setIsLoading(false);
+        }
+        console.error("There was an error fetching the customers:", error);
       });
-
-    // if (response.ok) {
-    //   console.log("fetched products......", response.json());
-    //   // await refetchProductCount();
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.productsCreatedToast", {
-    //   //     count: productsCount,
-    //   //   }),
-    //   // });
-    // } else {
-    //   console.log("fetched products......", response);
-
-    //   setIsLoading(false);
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.errorCreatingProductsToast"),
-    //   //   error: true,
-    //   // });
-    // }
   };
+
   const fetchPriceRule = async (price_rule_id) => {
     try {
       const apiUrl = `https://middleware-discountapp.mean3.ae/get-price_rule/${price_rule_id}`;
@@ -612,18 +711,22 @@ export default function AddDiscountShipping() {
   };
 
   useEffect(() => {
-    // fetchDiscounts();
-    handleFetchCountries();
+    // handleFetchCountries();
     handleFetchCustomers();
     handleFetchPopulate();
-    // handleFetchCollectionPopulate();
   }, []);
   useEffect(() => {
-    // fetchDiscounts();
-    if (appliesTo === "specific_collection") {
-      handleFetchCollectionPopulate();
-    } else {
+    if (_appliesTo === "specific_product") {
       handleFetchPopulate();
+    } else {
+      handleFetchCollectionPopulate();
+    }
+  }, [_appliesTo]);
+  useEffect(() => {
+    if (appliesTo === "specific_product") {
+      handleFetchPopulate(false);
+    } else {
+      handleFetchCollectionPopulate(false);
     }
   }, [appliesTo]);
 
@@ -666,6 +769,7 @@ export default function AddDiscountShipping() {
       console.error("Error creating discount:", error);
     }
   };
+
   function getFormattedTimezoneOffset() {
     const date = new Date();
     const offset = date.getTimezoneOffset(); // Offset in minutes (negative if ahead of UTC, positive if behind)
@@ -684,37 +788,76 @@ export default function AddDiscountShipping() {
       "0"
     )}`;
   }
+
   const handleCreateDiscount = async () => {
-    // console.log("customer ids", customerIds);
-    // return;
     let isValid = false;
     try {
       setModalLoader(true);
       isValid = true;
-      if (minRequirementCheckselected === "MPA" && !minPurchaseReq) {
-        setMinPurchaseReqError(true);
+
+      if (_prodIds.length < 1) {
+        setProductIdsError_(true);
         isValid = false;
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
       } else {
-        setMinPurchaseReqError(false);
+        setProductIdsError_(false);
       }
-      if (minRequirementCheckselected === "MQI" && !minQuantityReq) {
-        setMinQuantityReqError(true);
+
+      if (prodIds.length < 1) {
+        setProductIdsError(true);
         isValid = false;
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
       } else {
-        setMinQuantityReqError(false);
+        setProductIdsError(false);
       }
+
+      if (
+        discountedValueCheck === "percentage" &&
+        (!minPercentOffReq || minPercentOffReq === 0)
+      ) {
+        console.log("cecking....");
+        isValid = false;
+        set_MinPercentOffReqError(true);
+      } else {
+        set_MinPercentOffReqError(false);
+      }
+
+      if (
+        discountedValueCheck === "fixed_amount" &&
+        (!minAmountOffReq || minAmountOffReq === 0)
+      ) {
+        isValid = false;
+        setMinAmountOffReqError(true);
+      } else {
+        setMinAmountOffReqError(false);
+      }
+
+      if (discountedValueCheck === "MPA" && !minPercentOffReq) {
+        setMinPercentOffReqError(true);
+        isValid = false;
+        // setModalLoader(false);
+        // return;
+      } else {
+        setMinPercentOffReqError(false);
+      }
+      // if (discountedValueCheck === "MQI" && !minAmountOffReq) {
+      //   setMinAmountOffReqError(true);
+      //   isValid = false;
+      //   // setModalLoader(false);
+      //   // return;
+      // } else {
+      //   setMinAmountOffReqError(false);
+      // }
       if (
         (checkselected === "SC" || checkselected === "SCS") &&
         countriesIds.length === 0
       ) {
         setCountriesIdsError(true);
         isValid = false;
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
       } else {
         isValid = true;
         setCountriesIdsError(false);
@@ -725,8 +868,21 @@ export default function AddDiscountShipping() {
       ) {
         setCustomerIdsError(true);
         isValid = false;
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
+      } else {
+        isValid = true;
+        setCustomerIdsError(false);
+      }
+
+      if (
+        (checkCustomerSelected === "SC" || checkCustomerSelected === "SCS") &&
+        customerIds.length === 0
+      ) {
+        setCustomerIdsError(true);
+        isValid = false;
+        // setModalLoader(false);
+        // return;
       } else {
         isValid = true;
         setCustomerIdsError(false);
@@ -735,8 +891,8 @@ export default function AddDiscountShipping() {
       if (usageLimitchecked && usageLimitValue === 0) {
         isValid = false;
         setUsageLimitCodeError(true);
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
       } else {
         setUsageLimitCodeError(false);
         isValid = true;
@@ -745,8 +901,8 @@ export default function AddDiscountShipping() {
         setCodeError(true);
 
         isValid = false;
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
         // const newLocal = (isValid = false);
       } else {
         setCodeError(false);
@@ -757,8 +913,8 @@ export default function AddDiscountShipping() {
         setCodeStartDateError(true);
 
         isValid = false;
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
         // return;
       } else {
         isValid = true;
@@ -767,68 +923,89 @@ export default function AddDiscountShipping() {
       if (usageLimitchecked && !usageLimitValue) {
         isValid = false;
         setUsageLimitCodeError(true);
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
       } else {
         setUsageLimitCodeError(false);
         isValid = true;
       }
       if (
-        purhcaseTypeCheckselected === "otp" &&
+        purchaseTypeSelected === "otp" &&
         oneTimePurchaseProducts.length === 0
       ) {
         isValid = false;
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
       } else {
         isValid = true;
       }
+
       if (
-        purhcaseTypeCheckselected === "sub" &&
-        subscriptionProducts.length === 0
-      ) {
-        isValid = false;
-        setSubscriptionProductsError(true);
-        setModalLoader(false);
-        return;
-      } else {
-        setSubscriptionProductsError(false);
-        isValid = true;
-      }
-      if (
-        purhcaseTypeCheckselected !== "otp" &&
+        purchaseTypeSelected !== "otp" &&
         excludeShippingRates &&
         excludeShippingRatesValue === 0
       ) {
         isValid = false;
         setExcludeShippingRatesValueError(true);
-        setModalLoader(false);
-        return;
+        // setModalLoader(false);
+        // return;
       } else {
         setExcludeShippingRatesValueError(false);
         isValid = true;
       }
-      console.log("isvalid...", isValid);
-      // if (isValid === false) {
-      //   setModalLoader(false);
-      //   return;
-      // }
+      if (purchaseTypeSelected === "sub" && subscriptionProducts.length === 0) {
+        isValid = false;
+        setSubscriptionProductsError(true);
+        // setModalLoader(false);
+        // return;
+      } else {
+        setSubscriptionProductsError(false);
+        isValid = true;
+      }
+
+      if (!preReqQuantity || preReqQuantity < 1) {
+        setPreReqQuantityValueError(true);
+        isValid = false;
+        // setModalLoader(false);
+        // return;
+      } else {
+        setPreReqQuantityValueError(false);
+        isValid = true;
+      }
+
+      if (!entitledQuantity || entitledQuantity < 1) {
+        setEntitledQuantityValueError(true);
+        isValid = false;
+        // setModalLoader(false);
+        // return;
+      } else {
+        setEntitledQuantityValueError(false);
+        isValid = true;
+      }
+
+      // console.log("isvalid...", );
+
       // return;
       const newDiscount = {
         price_rule: {
           title: newDiscountCode,
-          value_type: "percentage", // fixed_amount  OR percentage
-          value: "-100.0", //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
+          value_type:
+            discountedValueCheck === "free" ||
+            discountedValueCheck !== "fixed_amount"
+              ? "percentage"
+              : "fixed_amount", // fixed_amount  OR percentage
+          value:
+            discountedValueCheck === "fixed_amount"
+              ? `-${minAmountOffReq}.0`
+              : discountedValueCheck === "free"
+              ? "-100.00"
+              : `-${minPercentOffReq}.0`, //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
           customer_selection:
             checkCustomerSelected === "SC" || checkCustomerSelected === "SCS"
               ? "prerequisite"
               : "all",
-          target_type: "shipping_line", //line_item: The price rule applies to the cart's line items. OR shipping_line: The price rule applies to the cart's shipping lines.
-          target_selection:
-            (checkselected === "SC" || checkselected === "SCS") &&
-            countriesIds.length > 0
-              ? "entitled"
-              : "all", //all: The price rule applies the discount to all line items in the checkout. OR entitled: The price rule applies the discount to selected entitlements only.
+          target_type: "line_item", //line_item: The price rule applies to the cart's line items. OR shipping_line: The price rule applies to the cart's shipping lines.
+          target_selection: "entitled", //all: The price rule applies the discount to all line items in the checkout. OR entitled: The price rule applies the discount to selected entitlements only.
           allocation_method: "each", // each discount applies to single item we choosen OR accross discount applies to all items in the checkout cart.
           starts_at:
             extractDate(selectedDate) === new Date().toDateString()
@@ -839,34 +1016,52 @@ export default function AddDiscountShipping() {
               ? `${selectedDateEnd}T${endAtTime}:00${getFormattedTimezoneOffset()}`
               : null,
           }),
+
+          //must buy collection or product
+          ...(_appliesTo === "specific_collection"
+            ? {
+                //work remain on collection fetch it first
+                prerequisite_collection_ids: _prodIds,
+              }
+            : { prerequisite_product_ids: _prodIds }),
+
+          //get products for free or some amount or some percentage off
+          ...(appliesTo === "specific_collection"
+            ? { entitled_collection_ids: prodIds }
+            : {
+                entitled_product_ids: prodIds,
+              }),
+          // entitled_product_ids: [prodIds],
+
+          //define number of products needs to buy or get from above spcified collection or products
+          prerequisite_to_entitlement_quantity_ratio: {
+            prerequisite_quantity: preReqQuantity,
+            entitled_quantity: entitledQuantity,
+          },
+
           // Make sure entitled_product_ids is an array
-          ...(purhcaseTypeCheckselected &&
-            purhcaseTypeCheckselected !== "otp" && {
+          ...(purchaseTypeSelected &&
+            purchaseTypeSelected !== "otp" && {
               entitled_product_ids:
-                purhcaseTypeCheckselected === "sub"
+                purchaseTypeSelected === "sub"
                   ? subscriptionProducts
                   : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
             }),
-          //conditionally add country ids if countries checkbox is selected.
-          ...((checkselected === "SC" || checkselected === "SCS") &&
-            countriesIds.length > 0 && {
-              entitled_country_ids: countriesIds,
-            }),
 
-          // Conditionally add prerequisite if minRequirementCheckselected is "MPA"
-          ...(minRequirementCheckselected === "MPA" &&
-            minPurchaseReq && {
+          // Conditionally add prerequisite if discountedValueCheck is "MPA"
+          ...(discountedValueCheck === "MPA" &&
+            minPercentOffReq && {
               prerequisite_subtotal_range: {
-                greater_than_or_equal_to: minPurchaseReq,
+                greater_than_or_equal_to: minPercentOffReq,
               },
             }),
 
-          // Conditionally add prerequisite if minRequirementCheckselected is "MQI"
-          ...(minRequirementCheckselected === "MQI" &&
-            minQuantityReq && {
+          // Conditionally add prerequisite if discountedValueCheck is "MQI"
+          ...(discountedValueCheck === "MQI" &&
+            minAmountOffReq && {
               prerequisite_to_entitlement_quantity_ratio: {
-                prerequisite_quantity: minQuantityReq,
-                entitled_quantity: 1,
+                prerequisite_quantity: minAmountOffReq,
+                entitledQuantity: 1,
               },
               prerequisite_product_ids: prodIds, // Only add when MQI is selected
             }),
@@ -891,20 +1086,14 @@ export default function AddDiscountShipping() {
           combinesWithOrderDiscounts: isOrderDiscount,
         },
         discount_code: newDiscountCode,
-        discount_type: "order",
+        discount_type: "product",
       };
 
-      console.log(
-        "payloardCheckup...",
-        newDiscount,
-        "default end date if true it is->",
-        checked,
-        "selected end date if true if is->"
-      );
+      console.log("payloardCheckup...", newDiscount);
 
-      console.log("dynamic->>>>>>", targetSelection);
+      // console.log("dynamic->>>>>>", targetSelection);
 
-      //  return;
+      // return;
       //  console.log('hardcode->>>>>>',_newDiscount)
       const response = await axios.post(
         "http://localhost:4000/add-discount-code",
@@ -940,8 +1129,8 @@ export default function AddDiscountShipping() {
       setProdIds([]);
       setCustomerIdsError(false);
       setCustomerIds([]);
-      setMinRequirementCheckSelected("NMR");
-      setMinRequirementSelected("NMR");
+      setDiscountedValueCheck("NMR");
+      setDiscountedValue("NMR");
       setSelectedTags([]);
       set_SelectedTags([]);
       setShippingDiscountValue("");
@@ -954,8 +1143,8 @@ export default function AddDiscountShipping() {
       setCodeStartDateError(false);
       setProductIdsError(false);
       setTitleError(false);
-      setMinPurchaseReq(0);
-      setMinQuantityReq(0);
+      setMinPercentOffReq(0);
+      setMinAmountOffReq(0);
       setAmountError(false);
       setExpiryError(false);
       setCodeError(false);
@@ -964,7 +1153,7 @@ export default function AddDiscountShipping() {
       setCustomerSelectionError(false);
       setIsModalOpen(false);
       setSelectedDate();
-      startsAtTime();
+      setStartsAtTime();
       setEndAtTime();
       setSelectedDateEnd();
       setProdIds([]);
@@ -981,6 +1170,8 @@ export default function AddDiscountShipping() {
       // document.getElementById("discount-section").scrollIntoView();
       navigate("/", { state: data });
     } catch (error) {
+      // return;
+
       // setModalLoader(false);
       // <Toast
       //   content={`${error.response.data.message}`}
@@ -989,65 +1180,63 @@ export default function AddDiscountShipping() {
 
       console.log("error", error);
     } finally {
-      if (isValid) {
-        setNewDiscountTitle("");
-        setNewDiscountAmount("");
-        setNewDiscountExpiry("");
-        setNewDiscountCode("");
-        setNewDiscountType("");
-        setEntitledProductIds([]);
-        setTargetType("line_item");
-        setTargetSelection("all");
-        setAllocationMethod("across");
-        setValueType("fixed_amount");
-        setValue("");
-        setProdIds([]);
-        setCustomerIdsError(false);
-        setCustomerIds([]);
-        setMinRequirementCheckSelected("NMR");
-        setMinRequirementSelected("NMR");
-        setSelectedTags([]);
-        set_SelectedTags([]);
-        setShippingDiscountValue("");
-        setCustomerSelection("all");
-        setStartsAtTime("");
-        setEndAtTime("");
-        setDiscountCodeType("");
-        setPrerequisiteToEntitlementQuantityRatio([]);
-        setShippingError(false);
-        setCodeStartDateError(false);
-        setProductIdsError(false);
-        setTitleError(false);
-        setMinPurchaseReq(0);
-        setMinQuantityReq(0);
-        setAmountError(false);
-        setExpiryError(false);
-        setCodeError(false);
-        setTypeError(false);
-        setValueError(false);
-        setCustomerSelectionError(false);
-        setIsModalOpen(false);
-        setSelectedDate();
-        setStartsAtTime();
-        setEndAtTime();
-        setSelectedDateEnd();
-        setProdIds([]);
-        setUsageLimitValue(0);
-        setUsageLimitchecked(false);
-        // toggleActive();
-        // toastMarkup("Discount Added Successfull");
-        const data = { status: true };
-
-        // navigate("/", { state: data });
-        // setToastVisible(true);
-        // fetchDiscounts();
-
-        // document.getElementById("discount-section").scrollIntoView();
-        navigate("/", { state: data });
+      // return;
+      if (!isValid) {
+        setModalLoader(false);
+        return;
       }
+      setNewDiscountTitle("");
+      setNewDiscountAmount("");
+      setNewDiscountExpiry("");
+      setNewDiscountCode("");
+      setNewDiscountType("");
+      setEntitledProductIds([]);
+      setTargetType("line_item");
+      setTargetSelection("all");
+      setAllocationMethod("across");
+      setValueType("fixed_amount");
+      setValue("");
+      setProdIds([]);
+      setCustomerIdsError(false);
+      setCustomerIds([]);
+      setDiscountedValueCheck("NMR");
+      setDiscountedValue("NMR");
+      setSelectedTags([]);
+      set_SelectedTags([]);
+      setShippingDiscountValue("");
+      setCustomerSelection("all");
+      setStartsAtTime("");
+      setEndAtTime("");
+      setDiscountCodeType("");
+      setPrerequisiteToEntitlementQuantityRatio([]);
+      setShippingError(false);
+      setCodeStartDateError(false);
+      setProductIdsError(false);
+      setTitleError(false);
+      setMinPercentOffReq(0);
+      setMinAmountOffReq(0);
+      setAmountError(false);
+      setExpiryError(false);
+      setCodeError(false);
+      setTypeError(false);
+      setValueError(false);
+      setCustomerSelectionError(false);
+      setIsModalOpen(false);
+      setSelectedDate();
+      setStartsAtTime();
+      setEndAtTime();
+      setSelectedDateEnd();
+      setProdIds([]);
+      setUsageLimitValue(0);
+      setUsageLimitchecked(false);
+      const data = { status: true };
+      navigate("/", { state: data });
     }
   };
-
+  // console.log(
+  //   "checkout",
+  //   discountedValueCheck === "percentage" && _minPercentOffReqError
+  // );
   useEffect(() => {
     const timer = setTimeout(() => {
       setToastVisible(false);
@@ -1057,8 +1246,12 @@ export default function AddDiscountShipping() {
     return () => clearTimeout(timer);
   }, [toastVisible]);
 
-  const handleFetchPopulate = async () => {
-    setIsLoading(true);
+  const handleFetchPopulate = async (isApply = true) => {
+    if (isApply) {
+      set_IsLoading(true);
+    } else {
+      setIsLoading(true);
+    }
 
     await fetch("api/prod", { method: "GET" })
       .then((response) => {
@@ -1073,6 +1266,14 @@ export default function AddDiscountShipping() {
         // Mapping the products data to the desired format
 
         console.log("Fetched products:", data); // Debugging line
+        const formattedProducts = data.data.map((product) => ({
+          label: product.title,
+          value: product.id,
+        }));
+        // console.log("Fetched price rules:", data); // Debugging line
+        // const deselectedOptions = useMemo(() => formattedProducts, []);
+        // console.log(formattedProducts);
+
         // return;
         // Filter out one-time purchase products (products without subscription tags)
         // Filter out one-time purchase products (products without subscription tags)
@@ -1086,9 +1287,21 @@ export default function AddDiscountShipping() {
           .map((product) => product.id); // Return only the IDs
         setSubscriptionProducts(subProd);
         setOneTimePurchaseProducts(oneTimeProd);
+        if (isApply) {
+          setProductOptions_(formattedProducts);
+          set_IsLoading(false);
+        } else {
+          setProductOptions(formattedProducts);
+          setIsLoading(false);
+        }
       })
       .catch((error) => {
-        setIsLoading(false);
+        if (isApply) {
+          set_IsLoading(false);
+        } else {
+          setIsLoading(false);
+        }
+
         console.error("There was an error fetching the products:", error);
       });
   };
@@ -1124,24 +1337,6 @@ export default function AddDiscountShipping() {
         setIsLoading(false);
         console.error("There was an error fetching the customers:", error);
       });
-
-    // if (response.ok) {
-    //   console.log("fetched products......", response.json());
-    //   // await refetchProductCount();
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.productsCreatedToast", {
-    //   //     count: productsCount,
-    //   //   }),
-    //   // });
-    // } else {
-    //   console.log("fetched products......", response);
-
-    //   setIsLoading(false);
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.errorCreatingProductsToast"),
-    //   //   error: true,
-    //   // });
-    // }
   };
   const handleFetchCountries = async () => {
     setIsLoading(true);
@@ -1189,16 +1384,97 @@ export default function AddDiscountShipping() {
       placeholder="Search customers"
     />
   );
+  const _textField_ = (
+    <Autocomplete.TextField
+      labelHidden
+      placeholder={
+        _appliesTo === "specific_collection"
+          ? "Search Collection"
+          : _isLoading
+          ? "loading..."
+          : "Search Products"
+      }
+      onChange={_updateText_}
+      value={_inputValue_}
+      autoComplete="off"
+      prefix={<Icon source={SearchMinor} tone="base" />}
+      style={{ width: "100%" }} // This makes the TextField 100% width of its container
+    />
+  );
   const _textField = (
     <Autocomplete.TextField
       labelHidden
-      placeholder="Search Countries"
+      placeholder={
+        appliesTo === "specific_collection"
+          ? "Search Collection"
+          : isLoading
+          ? "loading..."
+          : "Search Products"
+      }
       onChange={_updateText}
       value={_inputValue}
       autoComplete="off"
       prefix={<Icon source={SearchMinor} tone="base" />}
       style={{ width: "100%" }} // This makes the TextField 100% width of its container
     />
+  );
+  const _removeTag_ = useCallback(
+    (tag) => () => {
+      //   console.log("matched option->>>>>>", matchedOption);
+      // return;
+      // Find the option that matches the selected item's value
+      const matchedOption = _options_.filter((option) =>
+        option.label.toLowerCase() === tag.toLowerCase() ? option.value : null
+      );
+      console.log("matched option->>>>>>", matchedOption);
+      // return;
+      if (matchedOption) {
+        set_ProdIds((prev) => {
+          const updatedSet = new Set(prev);
+
+          // Iterate through previously selected items and remove those not in the current selection
+          prev.forEach((item) => {
+            // console.log("tagass", matchedOption?.value === item);
+            matchedOption.forEach((_item) => {
+              if (_item.value === item) {
+                updatedSet.delete(item);
+              }
+            });
+          });
+
+          // // Add all currently selected items to the Set
+          // selected.forEach((item) => updatedSet.add(item));
+
+          // Convert the Set back to an array and return it
+          return Array.from(updatedSet);
+        });
+        // return;
+        set_SelectedOptions_((prev) => {
+          const updatedSet = new Set(prev);
+
+          // Iterate through previously selected items and remove those not in the current selection
+          prev.forEach((item) => {
+            // console.log("problem", matchedOption.value, item);
+            matchedOption.forEach((_item) => {
+              if (_item.value === item) {
+                updatedSet.delete(item);
+              }
+            });
+          });
+
+          // // Add all currently selected items to the Set
+          // selected.forEach((item) => updatedSet.add(item));
+
+          // Convert the Set back to an array and return it
+          return Array.from(updatedSet);
+        });
+        // return;
+        set_SelectedTags_((previousTags) =>
+          previousTags.filter((previousTag) => previousTag !== tag)
+        );
+      }
+    },
+    [_options_, _selectedTags_, _selectedOptions, _prodIds]
   );
   const _removeTag = useCallback(
     (tag) => () => {
@@ -1210,51 +1486,53 @@ export default function AddDiscountShipping() {
       );
       // console.log("checkup", matchedOption);
       // return;
-      setCountriesIds((prev) => {
-        const updatedSet = new Set(prev);
+      if (matchedOption) {
+        setProdIds((prev) => {
+          const updatedSet = new Set(prev);
 
-        // Iterate through previously selected items and remove those not in the current selection
-        prev.forEach((item) => {
-          // console.log("tagass", matchedOption?.value === item);
-          matchedOption.forEach((_item) => {
-            if (_item.value === item) {
-              updatedSet.delete(item);
-            }
+          // Iterate through previously selected items and remove those not in the current selection
+          prev.forEach((item) => {
+            // console.log("tagass", matchedOption?.value === item);
+            matchedOption.forEach((_item) => {
+              if (_item.value === item) {
+                updatedSet.delete(item);
+              }
+            });
           });
+
+          // // Add all currently selected items to the Set
+          // selected.forEach((item) => updatedSet.add(item));
+
+          // Convert the Set back to an array and return it
+          return Array.from(updatedSet);
         });
+        // return;
+        set_SelectedOptions((prev) => {
+          const updatedSet = new Set(prev);
 
-        // // Add all currently selected items to the Set
-        // selected.forEach((item) => updatedSet.add(item));
-
-        // Convert the Set back to an array and return it
-        return Array.from(updatedSet);
-      });
-      // return;
-      set_SelectedOptions((prev) => {
-        const updatedSet = new Set(prev);
-
-        // Iterate through previously selected items and remove those not in the current selection
-        prev.forEach((item) => {
-          // console.log("problem", matchedOption.value, item);
-          matchedOption.forEach((_item) => {
-            if (_item.value === item) {
-              updatedSet.delete(item);
-            }
+          // Iterate through previously selected items and remove those not in the current selection
+          prev.forEach((item) => {
+            // console.log("problem", matchedOption.value, item);
+            matchedOption.forEach((_item) => {
+              if (_item.value === item) {
+                updatedSet.delete(item);
+              }
+            });
           });
+
+          // // Add all currently selected items to the Set
+          // selected.forEach((item) => updatedSet.add(item));
+
+          // Convert the Set back to an array and return it
+          return Array.from(updatedSet);
         });
-
-        // // Add all currently selected items to the Set
-        // selected.forEach((item) => updatedSet.add(item));
-
-        // Convert the Set back to an array and return it
-        return Array.from(updatedSet);
-      });
-      // return;
-      set_SelectedTags((previousTags) =>
-        previousTags.filter((previousTag) => previousTag !== tag)
-      );
+        // return;
+        set_SelectedTags((previousTags) =>
+          previousTags.filter((previousTag) => previousTag !== tag)
+        );
+      }
     },
-    []
+    [_options, _selectedTags, _selectedOptions, prodIds]
   );
   const removeTag = useCallback(
     (tag) => () => {
@@ -1266,55 +1544,62 @@ export default function AddDiscountShipping() {
       );
       // console.log("checkup", matchedOption);
       // return;
-      setCustomerIds((prev) => {
-        const updatedSet = new Set(prev);
+      if (matchedOption) {
+        setCustomerIds((prev) => {
+          const updatedSet = new Set(prev);
 
-        // Iterate through previously selected items and remove those not in the current selection
-        prev.forEach((item) => {
-          // console.log("tagass", matchedOption?.value === item);
-          matchedOption.forEach((_item) => {
-            if (_item.value === item) {
-              updatedSet.delete(item);
-            }
+          // Iterate through previously selected items and remove those not in the current selection
+          prev.forEach((item) => {
+            // console.log("tagass", matchedOption?.value === item);
+            matchedOption.forEach((_item) => {
+              if (_item.value === item) {
+                updatedSet.delete(item);
+              }
+            });
           });
+
+          // // Add all currently selected items to the Set
+          // selected.forEach((item) => updatedSet.add(item));
+
+          // Convert the Set back to an array and return it
+          return Array.from(updatedSet);
         });
+        // return;
+        setSelectedOptions((prev) => {
+          const updatedSet = new Set(prev);
 
-        // // Add all currently selected items to the Set
-        // selected.forEach((item) => updatedSet.add(item));
-
-        // Convert the Set back to an array and return it
-        return Array.from(updatedSet);
-      });
-      // return;
-      setSelectedOptions((prev) => {
-        const updatedSet = new Set(prev);
-
-        // Iterate through previously selected items and remove those not in the current selection
-        prev.forEach((item) => {
-          // console.log("problem", matchedOption.value, item);
-          matchedOption.forEach((_item) => {
-            if (_item.value === item) {
-              updatedSet.delete(item);
-            }
+          // Iterate through previously selected items and remove those not in the current selection
+          prev.forEach((item) => {
+            // console.log("problem", matchedOption.value, item);
+            matchedOption.forEach((_item) => {
+              if (_item.value === item) {
+                updatedSet.delete(item);
+              }
+            });
           });
+
+          // // Add all currently selected items to the Set
+          // selected.forEach((item) => updatedSet.add(item));
+
+          // Convert the Set back to an array and return it
+          return Array.from(updatedSet);
         });
-
-        // // Add all currently selected items to the Set
-        // selected.forEach((item) => updatedSet.add(item));
-
-        // Convert the Set back to an array and return it
-        return Array.from(updatedSet);
-      });
-      // return;
-      setSelectedTags((previousTags) =>
-        previousTags.filter((previousTag) => previousTag !== tag)
-      );
+        // return;
+        setSelectedTags((previousTags) =>
+          previousTags.filter((previousTag) => previousTag !== tag)
+        );
+      }
     },
-    []
+    [options, selectedTags, selectedOptions, customerIds]
   );
   const tagMarkup = selectedTags.map((option) => (
     <LegacyCard key={option}>
       <Tag onRemove={removeTag(option)}>{option}</Tag>
+    </LegacyCard>
+  ));
+  const _tagMarkup_ = _selectedTags_.map((option) => (
+    <LegacyCard key={option}>
+      <Tag onRemove={_removeTag_(option)}>{option}</Tag>
     </LegacyCard>
   ));
   const _tagMarkup = _selectedTags.map((option) => (
@@ -1340,10 +1625,44 @@ export default function AddDiscountShipping() {
     // Set the discount code state
     setNewDiscountCode(discountCode);
   };
+
+  const handleChangePreReqQuantity = (event) => {
+    const inputValue = Number(event);
+
+    // Ensure the value is not less than 0
+    const validValue = inputValue < 0 ? 0 : inputValue;
+    if (validValue) {
+      setPreReqQuantityValueError(false);
+    }
+    const negValue = -Math.abs(Number(validValue));
+
+    console.log("hitem", negValue);
+    setPreReqQuantity(validValue);
+  };
+
+  const handleChangeEntitledQuantity = (event) => {
+    const inputValue = event;
+
+    const validValue = inputValue < 0 ? 0 : inputValue;
+    if (validValue) {
+      setEntitledQuantityValueError(false);
+    }
+    // Convert the value to a negative number
+    const negValue = -Math.abs(Number(validValue));
+    setEntitledQuantity(validValue);
+  };
+
+  function convertTo12HourFormat(time24) {
+    const [hours, minutes] = time24.split(":");
+    const period = hours >= 12 ? "PM" : "AM";
+    const adjustedHours = hours % 12 || 12; // Convert 0 hours to 12 for AM
+    return `${adjustedHours}:${minutes} ${period}`;
+  }
+
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
-      title="Create shipping discount"
+      title="Create product discount"
     >
       <div
         style={{
@@ -1357,14 +1676,9 @@ export default function AddDiscountShipping() {
         <div
           style={{
             width: "70%",
-            // flex: 1,
-            // backgroundColor: "black",
             display: "flex",
             flexDirection: "column",
             gap: "15px",
-            // flexWrap: "wrap", // Ensures the items can wrap if needed
-            // marginBottom: 40,
-            // marginTop: 40,
           }}
         >
           {/* first card */}
@@ -1373,8 +1687,8 @@ export default function AddDiscountShipping() {
             newDiscountCode={newDiscountCode}
             setNewDiscountCode={setNewDiscountCode}
             codeError={codeError}
-            topLeftBannerName="Free shipping"
-            topRightBannerName="Shipping discount"
+            topLeftBannerName="Buy X get Y"
+            topRightBannerName="product discount"
           />
           {/* second card */}
           <div
@@ -1385,9 +1699,6 @@ export default function AddDiscountShipping() {
               borderRadius: "10px",
               width: "100%",
               height: "90%",
-              // flex: 1,
-
-              // paddingBottom: 860,
               backgroundColor: "#FFFFFF",
               border: "1px solid #FFFFFF",
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
@@ -1395,138 +1706,199 @@ export default function AddDiscountShipping() {
               marginBottom: -110,
             }}
           >
-            <div
-              style={{
-                marginBottom: 15,
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-              }}
-            >
-              Countries
-            </div>
-            <div
-              style={{
-                // display: "flex",
-                // justifyContent: "flex-start",
-                // gap: "10px",
-                width: "100%",
-                marginTop: 10,
-              }}
-            >
-              {/* Countries card */}
-              <ChoiceList
-                variant="group"
-                choices={[
-                  { label: "All countries", value: "all" },
-                  // { label: "Specific customer segments", value: "SCS" },
-                  { label: "Selected countries", value: "SC" },
-                ]}
-                selected={selected}
-                onChange={handleChangeCountriesSelection}
-              />
-              <div style={{ marginTop: 20 }} />
-              {checkselected === "SC" && (
-                <FormLayout condensed>
-                  <Autocomplete
-                    allowMultiple
-                    options={_options}
-                    selected={_selectedOptions}
-                    onSelect={_updateSelection}
-                    textField={_textField}
-                    prefix={<Icon source={SearchMinor} />}
-                  />
-                  {CountriesIdsError && (
-                    <Text as="p" color="critical">
-                      Select atleast a country
-                    </Text>
-                  )}
-                </FormLayout>
-              )}
-            </div>
-            <div style={{ marginBottom: 10, marginTop: 15 }}>
-              <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
-            </div>
-            {/* Purchase type card */}
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 15,
-              }}
-            >
+            {/* Customer Buys Container */}
+            <div style={{ fontWeight: "500" }}>Customer buys</div>
+            <div style={{ fontWeight: "500", marginTop: 10 }}>
               Purchase type
             </div>
-            <ChoiceList
-              variant="group"
-              choices={[
-                { label: "One-time purhcase", value: "otp" },
-                // { label: "Specific customer segments", value: "SCS" },
-                { label: "Subscription", value: "sub" },
-                { label: "Both", value: "both" },
-              ]}
-              selected={purchaseTypeSelected}
-              onChange={handleChangePurhcaseTypeSelection}
-            />
-            {subscriptionProductsError && (
-              <div style={{ color: "red", width: "100%" }}>
-                you don't have products that have subscription tags,choose other
-                option or add tags to products
-              </div>
-            )}
             <div
               style={{
-                fontSize: "14px",
                 fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-                marginTop: 15,
+                fontWeight: "500",
+                marginBottom: 10,
+                fontSize: "13px",
+                color: "gray",
               }}
             >
-              Shipping rates
+              Buy X get Y discounts are only supported with one-time purchases.
             </div>
-            <Checkbox
-              label="Exclude shipping rates over a certain amount"
-              checked={excludeShippingRates}
-              onChange={handleExcludeShippingRates}
+            <ChoiceList
+              // title="Company name"
+              variant="group"
+              choices={filteredValueTypeOptions}
+              selected={valueType}
+              onChange={(value) => setValueType(value)}
             />
-            {excludeShippingRates && (
-              <div style={{ marginLeft: 27, width: "20%" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "flex-start",
+                alignItems: "flex-start",
+                flexWrap: "nowrap",
+                gap: "2%",
+                marginBottom: 30,
+                marginTop: 10,
+                // backgroundColor: "black",
+                // paddingBottom: 20,
+              }}
+            >
+              <div style={{ width: "30%" }}>
                 <PolarisTextField
+                  //   suffix={valueType !== "fixed_amount" && "%"}
+                  //   prefix={valueType === "fixed_amount" && "$"}
+                  // prefix="%"
+                  label="Quantity"
                   type="number"
-                  label=""
-                  value={excludeShippingRatesValue}
-                  onChange={(value) => setExcludeShippingRatesValue(value)}
+                  value={preReqQuantity}
+                  onChange={handleChangePreReqQuantity}
                   error={
-                    excludeShippingRatesValueError
-                      ? "shipping rates value required."
-                      : ""
+                    preReqQuantityValueError ? "Add atleast a quantity" : ""
                   }
                 />
               </div>
-            )}
-          </div>
-          {/* third card */}
-          <div
-            style={{
-              marginBottom: 5,
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "90%",
-              // flex: 1,
+              <div style={{ width: "70%" }}>
+                <Select
+                  label={"Any items from"}
+                  options={filteredAppliesToOptions}
+                  value={_appliesTo}
+                  onChange={(value) => {
+                    // setCollectionOptions([]);
+                    // setProductOptions([]);
+                    set_AppliesTo(value);
 
-              // paddingBottom: 860,
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-              position: "relative",
-              marginTop: 110,
-              marginBottom: -110,
-            }}
-          >
+                    if (_appliesTo === "specific_collection") {
+                      setProductOptions_([]);
+                    } else {
+                      set_CollectionOptions([]);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ marginBottom: 15 }}>
+              <FormLayout condensed>
+                <Autocomplete
+                  allowMultiple
+                  options={_options_}
+                  selected={_selectedOptions_}
+                  onSelect={_updateSelection_}
+                  textField={_textField_}
+                  prefix={<Icon source={SearchMinor} />}
+                />
+                {productIdsError_ && (
+                  <Text as="p" color="critical">
+                    Select atleast a product to buy
+                  </Text>
+                )}
+              </FormLayout>
+            </div>
+            <div style={{ marginBottom: 5, marginTop: 5 }}>
+              <LegacyStack spacing="tight">{_tagMarkup_}</LegacyStack>
+            </div>
+            {/* Customer Gets Container */}
+            <div
+              style={{
+                opacity: 0.5,
+                borderTopWidth: 2, // Top border width in pixels
+                borderTopColor: "gray", // Add a color for the top border
+                borderStyle: "solid",
+                borderBottomWidth: 0,
+                borderLeftWidth: 0,
+                borderRightWidth: 0,
+                marginBottom: 10,
+                marginTop: 10,
+              }}
+            />
+            <div
+              style={{
+                fontWeight: "500",
+                marginBottom: 10,
+
+                // borderTopLeftRadius: 10,
+              }}
+            >
+              Customer gets
+            </div>
+            <div
+              style={{
+                fontWeight: "500",
+                fontWeight: "500",
+                marginBottom: 10,
+                fontSize: "13px",
+                color: "gray",
+              }}
+            >
+              Customer must add quantity of items specified below to thier cart.
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "flex-start",
+                alignItems: "flex-start",
+                flexWrap: "nowrap",
+                gap: "2%",
+                marginBottom: 30,
+                marginTop: 15,
+              }}
+            >
+              <div style={{ width: "30%" }}>
+                <PolarisTextField
+                  //   suffix={valueType !== "fixed_amount" && "%"}
+                  //   prefix={valueType === "fixed_amount" && "$"}
+                  // prefix="%"
+                  label="Quantity"
+                  type="number"
+                  value={entitledQuantity}
+                  onChange={handleChangeEntitledQuantity}
+                  error={
+                    entitledQuantityValueError ? "Add atleast a quantity" : ""
+                  }
+                />
+              </div>
+              <div style={{ width: "70%", borderRadius: "20%" }}>
+                <Select
+                  label={"Any items from"}
+                  options={filteredAppliesToOptions}
+                  value={appliesTo}
+                  onChange={(value) => {
+                    // setCollectionOptions([]);
+                    // setProductOptions([]);
+                    setAppliesTo(value);
+
+                    if (appliesTo === "specific_collection") {
+                      setProductOptions([]);
+                    } else {
+                      setCollectionOptions([]);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ marginBottom: 15 }}>
+              <FormLayout condensed>
+                <Autocomplete
+                  allowMultiple
+                  options={_options}
+                  selected={_selectedOptions}
+                  onSelect={_updateSelection}
+                  textField={_textField}
+                  prefix={<Icon source={SearchMinor} />}
+                />
+                {productIdsError && (
+                  <Text as="p" color="critical">
+                    Select atleast a product to get
+                  </Text>
+                )}
+              </FormLayout>
+            </div>
+            <div style={{ marginBottom: 5, marginTop: 5 }}>
+              <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
+            </div>
+
+            {/* Set Discounted Value */}
+
             <div
               style={{
                 fontSize: "14px",
@@ -1535,7 +1907,7 @@ export default function AddDiscountShipping() {
                 marginBottom: 5,
               }}
             >
-              Minimum purchase required
+              At a discounted value
             </div>
             <div
               style={{
@@ -1550,24 +1922,23 @@ export default function AddDiscountShipping() {
                 // title="Company name"
                 variant="group"
                 choices={[
-                  { label: "No minimum requirements", value: "NMR" },
+                  { label: "Percentage", value: "percentage", renderChildren },
                   {
-                    label: "Minimum purhcase amount",
-                    value: "MPA",
+                    label: "Amount off each",
+                    value: "fixed_amount",
                     renderChildren,
                   },
                   {
-                    label: "Minimum quantity of items",
-                    value: "MQI",
-                    renderChildren,
+                    label: "Free",
+                    value: "free",
                   },
                 ]}
-                selected={minRequirementSelected}
-                onChange={handleChangeMinRequirementSelection}
+                selected={discountedValue}
+                onChange={handleChangeDiscountedValue}
               />
             </div>
           </div>
-          {/* fourth card */}
+          {/* third card */}
           <div
             style={{
               marginBottom: 5,
@@ -1638,7 +2009,7 @@ export default function AddDiscountShipping() {
               <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
             </div>
           </div>
-          {/* fifth card */}
+          {/* fourth card */}
           <div
             style={{
               marginBottom: 5,
@@ -1691,15 +2062,7 @@ export default function AddDiscountShipping() {
               />
             </div>
           </div>
-          {/* sixth card */}
-          {/* <DiscountCombinationUI
-            isOrderDiscount={isOrderDiscount}
-            isProductDiscount={isProductDiscount}
-            handleChangeisOrderDiscount={handleChangeIsOrderChecked}
-            handleChangeisProductDiscount={handleChangeIsProductChecked}
-            showShippingDiscount={false}
-          /> */}
-          {/* seventh card */}
+          {/* fifth card */}
           <div
             style={{
               marginBottom: 5,
@@ -1888,6 +2251,7 @@ export default function AddDiscountShipping() {
           </div>
         </div>
       </div>
+      {/* cancel and save buttons */}
       <div
         style={{
           marginTop: 15,

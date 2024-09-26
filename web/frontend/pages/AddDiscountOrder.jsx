@@ -47,7 +47,7 @@ import DiscountCodeUI from "../components/DiscountCodeUI";
 import DiscountCombinationUI from "../components/DiscountCombinationUI";
 // import { useNavigate } from "@shopify/app-bridge-react";
 
-export default function AddDiscountShipping() {
+export default function AddDiscountOrder() {
   const navigate = useNavigate();
   const [filterValue, setFilterValue] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -122,8 +122,7 @@ export default function AddDiscountShipping() {
     useState(false);
   const [checkselected, setCheckSelected] = useState("all");
   const [checkCustomerSelected, setCheckCustomerSelected] = useState("all");
-  const [purhcaseTypeCheckselected, setPurhcaseTypeCheckSelected] =
-    useState("otp");
+
   const [minRequirementCheckselected, setMinRequirementCheckSelected] =
     useState("NMR");
   console.log("check selected", checkselected);
@@ -212,8 +211,6 @@ export default function AddDiscountShipping() {
   }, []);
   const handleChangePurhcaseTypeSelection = useCallback((value) => {
     {
-      const [_selected] = value;
-      setPurhcaseTypeCheckSelected(_selected);
       setPurchaseTypeSelected(value);
     }
   }, []);
@@ -247,6 +244,20 @@ export default function AddDiscountShipping() {
       setExcludeShippingRatesValueError(false);
     }
   };
+  const valueTypeOptions = [
+    { label: "Fixed Amount", value: "fixed_amount" },
+    { label: "Percentage", value: "percentage" },
+  ];
+  const valuePurchaseOptions = [
+    { label: "One-time purhcase", value: "otp" },
+    // { label: "Specific customer segments", value: "SCS" },
+    { label: "Subscription", value: "sub" },
+    { label: "Both", value: "both" },
+  ];
+  const filteredValueTypeOptions =
+    targetType === "shipping_line"
+      ? [{ label: "Percentage", value: "percentage" }]
+      : valueTypeOptions;
 
   const [selectedTags, setSelectedTags] = useState([]);
 
@@ -445,6 +456,9 @@ export default function AddDiscountShipping() {
     // Format hours and minutes to always be two digits
     const formattedHours = hours < 10 ? `0${hours}` : hours;
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    const formattedTime = convertTo12HourFormat(
+      `${formattedHours}:${formattedMinutes}`
+    ); // Convert 24-hour to 12-hour
 
     // Return formatted time string
     return `${formattedHours}:${formattedMinutes}`;
@@ -495,7 +509,7 @@ export default function AddDiscountShipping() {
     (selected) => {
       // console.log("selected", selected);
       // return;
-      if (countriesIds.length > 0) {
+      if (customerIds.length > 0) {
         setCountriesIdsError(false);
       }
       set_SelectedOptions(selected);
@@ -533,7 +547,7 @@ export default function AddDiscountShipping() {
       });
       set_SelectedTags(selectedValue);
     },
-    [_options]
+    [options]
   );
   const [items, setItems] = useState(["Free shipping", "Code"]);
   const [items_two, setItems_two] = useState([
@@ -666,6 +680,7 @@ export default function AddDiscountShipping() {
       console.error("Error creating discount:", error);
     }
   };
+
   function getFormattedTimezoneOffset() {
     const date = new Date();
     const offset = date.getTimezoneOffset(); // Offset in minutes (negative if ahead of UTC, positive if behind)
@@ -684,7 +699,13 @@ export default function AddDiscountShipping() {
       "0"
     )}`;
   }
+
   const handleCreateDiscount = async () => {
+    //    setStartsAtTime(formatInitials(startsAtTime))
+    //    if(checked){
+    //    setEndAtTime(formatInitials(startsAtTime)) ;
+    //    }
+
     // console.log("customer ids", customerIds);
     // return;
     let isValid = false;
@@ -774,7 +795,7 @@ export default function AddDiscountShipping() {
         isValid = true;
       }
       if (
-        purhcaseTypeCheckselected === "otp" &&
+        purchaseTypeSelected === "otp" &&
         oneTimePurchaseProducts.length === 0
       ) {
         isValid = false;
@@ -783,20 +804,9 @@ export default function AddDiscountShipping() {
       } else {
         isValid = true;
       }
+
       if (
-        purhcaseTypeCheckselected === "sub" &&
-        subscriptionProducts.length === 0
-      ) {
-        isValid = false;
-        setSubscriptionProductsError(true);
-        setModalLoader(false);
-        return;
-      } else {
-        setSubscriptionProductsError(false);
-        isValid = true;
-      }
-      if (
-        purhcaseTypeCheckselected !== "otp" &&
+        purchaseTypeSelected !== "otp" &&
         excludeShippingRates &&
         excludeShippingRatesValue === 0
       ) {
@@ -808,28 +818,45 @@ export default function AddDiscountShipping() {
         setExcludeShippingRatesValueError(false);
         isValid = true;
       }
-      console.log("isvalid...", isValid);
-      // if (isValid === false) {
-      //   setModalLoader(false);
-      //   return;
-      // }
+      if (purchaseTypeSelected === "sub" && subscriptionProducts.length === 0) {
+        isValid = false;
+        setSubscriptionProductsError(true);
+        setModalLoader(false);
+        return;
+      } else {
+        setSubscriptionProductsError(false);
+        isValid = true;
+      }
+
+      if (valueType === "percentage" && (!value || value > 0 || value < -100)) {
+        setValueError(true);
+        isValid = false;
+        setModalLoader(false);
+        return;
+      } else if (valueType === "fixed_amount" && (!value || value >= 0)) {
+        setValueError(true);
+        isValid = false;
+        setModalLoader(false);
+        return;
+      } else {
+        setValueError(false);
+        isValid = true;
+      }
+      console.log("isvalid...", startsAtTime, getFormattedTimezoneOffset());
+
       // return;
       const newDiscount = {
         price_rule: {
           title: newDiscountCode,
-          value_type: "percentage", // fixed_amount  OR percentage
-          value: "-100.0", //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
+          value_type: valueType, // fixed_amount  OR percentage
+          value: value, //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
           customer_selection:
             checkCustomerSelected === "SC" || checkCustomerSelected === "SCS"
               ? "prerequisite"
               : "all",
-          target_type: "shipping_line", //line_item: The price rule applies to the cart's line items. OR shipping_line: The price rule applies to the cart's shipping lines.
-          target_selection:
-            (checkselected === "SC" || checkselected === "SCS") &&
-            countriesIds.length > 0
-              ? "entitled"
-              : "all", //all: The price rule applies the discount to all line items in the checkout. OR entitled: The price rule applies the discount to selected entitlements only.
-          allocation_method: "each", // each discount applies to single item we choosen OR accross discount applies to all items in the checkout cart.
+          target_type: "line_item", //line_item: The price rule applies to the cart's line items. OR shipping_line: The price rule applies to the cart's shipping lines.
+          target_selection: "all", //all: The price rule applies the discount to all line items in the checkout. OR entitled: The price rule applies the discount to selected entitlements only.
+          allocation_method: "across", // each discount applies to single item we choosen OR accross discount applies to all items in the checkout cart.
           starts_at:
             extractDate(selectedDate) === new Date().toDateString()
               ? `${handleDateChange(new Date(), true)}Z`
@@ -840,17 +867,12 @@ export default function AddDiscountShipping() {
               : null,
           }),
           // Make sure entitled_product_ids is an array
-          ...(purhcaseTypeCheckselected &&
-            purhcaseTypeCheckselected !== "otp" && {
+          ...(purchaseTypeSelected &&
+            purchaseTypeSelected !== "otp" && {
               entitled_product_ids:
-                purhcaseTypeCheckselected === "sub"
+                purchaseTypeSelected === "sub"
                   ? subscriptionProducts
                   : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
-            }),
-          //conditionally add country ids if countries checkbox is selected.
-          ...((checkselected === "SC" || checkselected === "SCS") &&
-            countriesIds.length > 0 && {
-              entitled_country_ids: countriesIds,
             }),
 
           // Conditionally add prerequisite if minRequirementCheckselected is "MPA"
@@ -894,13 +916,7 @@ export default function AddDiscountShipping() {
         discount_type: "order",
       };
 
-      console.log(
-        "payloardCheckup...",
-        newDiscount,
-        "default end date if true it is->",
-        checked,
-        "selected end date if true if is->"
-      );
+      console.log("payloardCheckup...", newDiscount);
 
       console.log("dynamic->>>>>>", targetSelection);
 
@@ -964,7 +980,7 @@ export default function AddDiscountShipping() {
       setCustomerSelectionError(false);
       setIsModalOpen(false);
       setSelectedDate();
-      startsAtTime();
+      setStartsAtTime();
       setEndAtTime();
       setSelectedDateEnd();
       setProdIds([]);
@@ -1340,10 +1356,24 @@ export default function AddDiscountShipping() {
     // Set the discount code state
     setNewDiscountCode(discountCode);
   };
+
+  const handleChange = (event) => {
+    const inputValue = event;
+    // Convert the value to a negative number
+    const negValue = -Math.abs(Number(inputValue));
+    setValue(negValue);
+  };
+
+  function convertTo12HourFormat(time24) {
+    const [hours, minutes] = time24.split(":");
+    const period = hours >= 12 ? "PM" : "AM";
+    const adjustedHours = hours % 12 || 12; // Convert 0 hours to 12 for AM
+    return `${adjustedHours}:${minutes} ${period}`;
+  }
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
-      title="Create shipping discount"
+      title="Create order discount"
     >
       <div
         style={{
@@ -1373,13 +1403,14 @@ export default function AddDiscountShipping() {
             newDiscountCode={newDiscountCode}
             setNewDiscountCode={setNewDiscountCode}
             codeError={codeError}
-            topLeftBannerName="Free shipping"
-            topRightBannerName="Shipping discount"
+            topLeftBannerName="Amount off order"
+            topRightBannerName="Order discount"
           />
           {/* second card */}
           <div
             style={{
               marginBottom: 5,
+
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1397,113 +1428,66 @@ export default function AddDiscountShipping() {
           >
             <div
               style={{
-                marginBottom: 15,
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "flex-start",
+                alignItems: "flex-end",
+                flexWrap: "nowrap",
+                gap: "2%",
+                marginBottom: 10,
               }}
             >
-              Countries
-            </div>
-            <div
-              style={{
-                // display: "flex",
-                // justifyContent: "flex-start",
-                // gap: "10px",
-                width: "100%",
-                marginTop: 10,
-              }}
-            >
-              {/* Countries card */}
-              <ChoiceList
-                variant="group"
-                choices={[
-                  { label: "All countries", value: "all" },
-                  // { label: "Specific customer segments", value: "SCS" },
-                  { label: "Selected countries", value: "SC" },
-                ]}
-                selected={selected}
-                onChange={handleChangeCountriesSelection}
-              />
-              <div style={{ marginTop: 20 }} />
-              {checkselected === "SC" && (
-                <FormLayout condensed>
-                  <Autocomplete
-                    allowMultiple
-                    options={_options}
-                    selected={_selectedOptions}
-                    onSelect={_updateSelection}
-                    textField={_textField}
-                    prefix={<Icon source={SearchMinor} />}
-                  />
-                  {CountriesIdsError && (
-                    <Text as="p" color="critical">
-                      Select atleast a country
-                    </Text>
-                  )}
-                </FormLayout>
-              )}
-            </div>
-            <div style={{ marginBottom: 10, marginTop: 15 }}>
-              <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
+              <div style={{ width: "70%" }}>
+                <Select
+                  label={
+                    <span style={{ fontWeight: "500" }}>Discount Value</span>
+                  }
+                  options={filteredValueTypeOptions}
+                  value={valueType}
+                  onChange={(value) => setValueType(value)}
+                />
+              </div>
+              <div style={{ width: "30%", borderRadius: "20%" }}>
+                <PolarisTextField
+                  suffix={valueType !== "fixed_amount" && "%"}
+                  prefix={valueType === "fixed_amount" && "$"}
+                  // prefix="%"
+                  // label="Discount Code"
+                  type="number"
+                  value={value}
+                  onChange={handleChange}
+                  error={valueError ? "Invalid Value" : ""}
+                />
+              </div>
             </div>
             {/* Purchase type card */}
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 15,
-              }}
-            >
-              Purchase type
-            </div>
-            <ChoiceList
-              variant="group"
-              choices={[
-                { label: "One-time purhcase", value: "otp" },
-                // { label: "Specific customer segments", value: "SCS" },
-                { label: "Subscription", value: "sub" },
-                { label: "Both", value: "both" },
-              ]}
-              selected={purchaseTypeSelected}
+            <Select
+              label={
+                <span
+                  style={{
+                    fontWeight: "500",
+                    marginBottom: 4,
+                    fontSize: "13px",
+                  }}
+                >
+                  Purchase type
+                </span>
+              }
+              options={valuePurchaseOptions}
+              value={purchaseTypeSelected}
               onChange={handleChangePurhcaseTypeSelection}
             />
             {subscriptionProductsError && (
-              <div style={{ color: "red", width: "100%" }}>
+              <div
+                style={{
+                  color: "red",
+                  width: "100%",
+                  marginLeft: 1,
+                  marginTop: 5,
+                }}
+              >
                 you don't have products that have subscription tags,choose other
                 option or add tags to products
-              </div>
-            )}
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-                marginTop: 15,
-              }}
-            >
-              Shipping rates
-            </div>
-            <Checkbox
-              label="Exclude shipping rates over a certain amount"
-              checked={excludeShippingRates}
-              onChange={handleExcludeShippingRates}
-            />
-            {excludeShippingRates && (
-              <div style={{ marginLeft: 27, width: "20%" }}>
-                <PolarisTextField
-                  type="number"
-                  label=""
-                  value={excludeShippingRatesValue}
-                  onChange={(value) => setExcludeShippingRatesValue(value)}
-                  error={
-                    excludeShippingRatesValueError
-                      ? "shipping rates value required."
-                      : ""
-                  }
-                />
               </div>
             )}
           </div>
@@ -1888,6 +1872,7 @@ export default function AddDiscountShipping() {
           </div>
         </div>
       </div>
+      {/* cancel and save buttons */}
       <div
         style={{
           marginTop: 15,

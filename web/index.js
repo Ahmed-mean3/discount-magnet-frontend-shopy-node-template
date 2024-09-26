@@ -139,7 +139,20 @@ app.get("/api/prod", async (_req, res) => {
   });
   res.status(200).send(prodData);
 });
-
+app.get("/api/collection", async (_req, res) => {
+  const smartCollectionData = await shopify.api.rest.SmartCollection.all({
+    session: res.locals.shopify.session,
+  });
+  const customCollectionData = await shopify.api.rest.CustomCollection.all({
+    session: res.locals.shopify.session,
+  });
+  const allCollections = [
+    ...smartCollectionData.data,
+    ...customCollectionData.data,
+  ];
+  // console.log("server side", smartCollectionData);
+  res.status(200).send(allCollections);
+});
 app.post("/api/products", async (_req, res) => {
   let status = 200;
   let error = null;

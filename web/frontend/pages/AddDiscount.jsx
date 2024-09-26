@@ -843,7 +843,24 @@ export default function AddDiscount() {
       console.error("Error creating discount:", error);
     }
   };
+  function getFormattedTimezoneOffset() {
+    const date = new Date();
+    const offset = date.getTimezoneOffset(); // Offset in minutes (negative if ahead of UTC, positive if behind)
 
+    // Convert the offset to hours and minutes
+    const absOffset = Math.abs(offset);
+    const hours = Math.floor(absOffset / 60);
+    const minutes = absOffset % 60;
+
+    // Determine if it's ahead or behind UTC
+    const sign = offset <= 0 ? "+" : "-";
+
+    // Format the result as +HH:MM or -HH:MM
+    return `${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0"
+    )}`;
+  }
   const handleCreateDiscount = async () => {
     let isValid = false;
     // // const data = { status: true };
@@ -889,9 +906,9 @@ export default function AddDiscount() {
 
       if (!newDiscountCode) {
         setCodeError(true);
-
         isValid = false;
-
+        setModalLoader(false);
+        return;
         // const newLocal = (isValid = false);
       } else {
         setCodeError(false);
@@ -913,10 +930,13 @@ export default function AddDiscount() {
       if (valueType === "percentage" && (!value || value > 0 || value < -100)) {
         setValueError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else if (valueType === "fixed_amount" && (!value || value >= 0)) {
         setValueError(true);
-
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         setValueError(false);
         isValid = true;
@@ -924,9 +944,9 @@ export default function AddDiscount() {
       if (!selectedDate) {
         console.log("entring");
         setCodeStartDateError(true);
-
         isValid = false;
-
+        setModalLoader(false);
+        return;
         // return;
       } else {
         isValid = true;
@@ -936,6 +956,8 @@ export default function AddDiscount() {
         setProductIdsError(true);
 
         isValid = false;
+        setModalLoader(false);
+        return;
         // return;
       } else {
         setProductIdsError(false);
@@ -973,6 +995,8 @@ export default function AddDiscount() {
       if (usageLimitchecked && !usageLimitValue) {
         isValid = false;
         setUsageLimitCodeError(true);
+        setModalLoader(false);
+        return;
       } else {
         setUsageLimitCodeError(false);
         isValid = true;
@@ -981,6 +1005,8 @@ export default function AddDiscount() {
       if (!value) {
         setValueError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         setValueError(false);
         isValid = true;
@@ -989,12 +1015,16 @@ export default function AddDiscount() {
       if (minRequirementCheckselected === "MPA" && !minPurchaseReq) {
         setMinPurchaseReqError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         setMinPurchaseReqError(false);
       }
       if (minRequirementCheckselected === "MQI" && !minQuantityReq) {
         setMinQuantityReqError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         setMinQuantityReqError(false);
       }
@@ -1005,15 +1035,17 @@ export default function AddDiscount() {
       ) {
         setCustomerIdsError(true);
         isValid = false;
+        setModalLoader(false);
+        return;
       } else {
         isValid = true;
         setCustomerIdsError(false);
       }
 
-      if (!isValid) {
-        setModalLoader(false);
-        return;
-      }
+      // if (!isValid) {
+      //   setModalLoader(false);
+      //   return;
+      // }
 
       // return;
       const newDiscount = {
@@ -1042,15 +1074,13 @@ export default function AddDiscount() {
 
           starts_at:
             extractDate(selectedDate) === new Date().toDateString()
-              ? handleDateChange(new Date(), true)
-              : selectedDate + "T" + startsAtTime + ":00",
-          end_at: checked
-            ? handleDateChange(new Date(), true, true) +
-              ":" +
-              formatTime(new Date(), true)
-            : selectedDateEnd && endAtTime
-            ? selectedDateEnd + ":" + endAtTime
-            : null,
+              ? `${handleDateChange(new Date(), true)}Z`
+              : `${selectedDate}T${startsAtTime}:00${getFormattedTimezoneOffset()}`,
+          ...(checked && {
+            ends_at: checked
+              ? `${selectedDateEnd}T${endAtTime}:00${getFormattedTimezoneOffset()}`
+              : null,
+          }),
 
           // Add prerequisite_customer_ids if applicable
           ...(checkselected === "SC" ||
@@ -1190,38 +1220,34 @@ export default function AddDiscount() {
 
       console.log("error", error);
     } finally {
-      // return;
-
-      if (!isValid) {
+      if (isValid) {
+        const data = { status: true };
+        setSelectedDate(formatDate(new Date()));
+        setSelectedDateEnd(modifyDate(new Date()));
+        setStartsAtTime(formatTime(new Date()));
+        setEndAtTime(formatTime(new Date()));
+        setShippingError(false);
+        setCodeStartDateError(false);
+        setProductIdsError(false);
+        setTitleError(false);
+        setAmountError(false);
+        setExpiryError(false);
+        setCodeError(false);
+        setTypeError(false);
+        setValueError(false);
+        setSelectedTags([]);
+        setValue("");
+        setProdIds([]);
+        setSelectedTags([]);
+        setProductIdsError(false);
+        setCustomerIds(false);
+        setAppliesTo("specific_product");
+        setUsageLimitchecked(false);
+        setUsageLimitValue(0);
+        // Ensure loader is turned off
         setModalLoader(false);
-        return;
+        navigate("/", { state: data });
       }
-      const data = { status: true };
-      setSelectedDate(formatDate(new Date()));
-      setSelectedDateEnd(modifyDate(new Date()));
-      setStartsAtTime(formatTime(new Date()));
-      setEndAtTime(formatTime(new Date()));
-      setShippingError(false);
-      setCodeStartDateError(false);
-      setProductIdsError(false);
-      setTitleError(false);
-      setAmountError(false);
-      setExpiryError(false);
-      setCodeError(false);
-      setTypeError(false);
-      setValueError(false);
-      setSelectedTags([]);
-      setValue("");
-      setProdIds([]);
-      setSelectedTags([]);
-      setProductIdsError(false);
-      setCustomerIds(false);
-      setAppliesTo("specific_product");
-      setUsageLimitchecked(false);
-      setUsageLimitValue(0);
-      // Ensure loader is turned off
-      setModalLoader(false);
-      navigate("/", { state: data });
     }
   };
   useEffect(() => {
@@ -1481,7 +1507,7 @@ export default function AddDiscount() {
         previousTags.filter((previousTag) => previousTag !== tag)
       );
     },
-    []
+    [customerIds, _selectedOptions, _selectedTags]
   );
   const removeTag = useCallback(
     (tag) => () => {
@@ -1537,7 +1563,7 @@ export default function AddDiscount() {
         previousTags.filter((previousTag) => previousTag !== tag)
       );
     },
-    []
+    [prodIds, selectedTags, selectedOptions]
   );
   console.log("katjas", _options);
   const tagMarkup = selectedTags.map((option) => (
@@ -1739,7 +1765,13 @@ export default function AddDiscount() {
                   onChange={(value) => setValueType(value)}
                 />
               </div>
-              <div style={{ width: "30%", borderRadius: "20%" }}>
+              <div
+                style={{
+                  width: "30%",
+                  borderRadius: "20%",
+                  alignContent: "flex-end",
+                }}
+              >
                 {/* <PolarisTextField
                 label="Discount Value "
                 type="number"
@@ -1832,9 +1864,6 @@ export default function AddDiscount() {
               error={codeError ? "Discount code is required." : ""}
             /> */}
             </div>
-            {/* <div style={{ color: "gray", fontWeight: "500", fontSize: "13px" }}>
-            Customer must enter this code at checkout
-          </div> */}
             <div style={{ marginBottom: 5, marginTop: 5 }}>
               <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
             </div>
@@ -2079,7 +2108,7 @@ export default function AddDiscount() {
                 type="time"
                 value={startsAtTime}
                 onChange={(value) => {
-                  setStartsAtTime(`${value}:00`);
+                  setStartsAtTime(value);
                 }}
                 style={{ flexGrow: 1, width: "100%" }} // Increases width
               />
@@ -2110,7 +2139,7 @@ export default function AddDiscount() {
 
                 <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
                   <PolarisTextField
-                    label="Select a start date"
+                    label="Select an end date"
                     type="date"
                     value={selectedDateEnd}
                     onChange={(value) => {
@@ -2123,7 +2152,7 @@ export default function AddDiscount() {
                   type="time"
                   value={endAtTime}
                   onChange={(value) => {
-                    setEndAtTime(`${value}:00`);
+                    setEndAtTime(value);
                   }}
                   // error={codeStartDateError ? "Start Date is required." : ""}
                 />

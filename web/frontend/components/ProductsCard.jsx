@@ -892,12 +892,14 @@ export function ProductsCard() {
             name: "Buy X get Y",
             description: "Discount products based on customer's purchase.",
             tagValue: "Product discount",
+            nav: "AddDiscountBuyXGetYFree",
           },
           {
             id: 3,
             name: "Amount off order",
             description: "Discount the total order amount.",
             tagValue: "Order discount",
+            nav: "AddDiscountOrder",
           },
           {
             id: 4,
