@@ -1772,14 +1772,6 @@ export default function AddDiscount() {
                   alignContent: "flex-end",
                 }}
               >
-                {/* <PolarisTextField
-                label="Discount Value "
-                type="number"
-                value={value}
-                onChange={handleChange}
-                error={valueError ? "Invalid Value" : ""}
-              /> */}
-
                 <PolarisTextField
                   suffix={valueType !== "fixed_amount" && "%"}
                   prefix={valueType === "fixed_amount" && "$"}
