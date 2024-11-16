@@ -1095,19 +1095,43 @@ export default function AddDiscountBuyXGetYFree() {
 
       // return;
       //  console.log('hardcode->>>>>>',_newDiscount)
-      const response = await axios.post(
-        "http://localhost:4000/add-discount-code",
-        newDiscount,
-        {
-          headers: {
-            "api-key": "Do2j^jF",
-            "shop-name": "store-for-customer-account-test",
-            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-            "shopify-api-token": "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",
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch("/api/add-discount-code", {
+        method: "POST",
+        body: JSON.stringify(newDiscount),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json(); // Assuming the response is in JSON format
+        })
+        .then((data) => {
+          console.log("checker price rule add:", data); // This will log the fetched products
+
+          return data.data;
+          // You can now use the 'data' variable to access your fetched products
+          // Mapping the products data to the desired format
+          const formattedCollection = data.data.map((collection) => ({
+            label: collection.title,
+            value: collection.id,
+          }));
+          console.log(
+            "Fetched collections now from backend:",
+            formattedCollection
+          ); // Debugging line
+          // const deselectedOptions = useMemo(() => formattedCollection, []);
+          // console.log(formattedCollection);
+          setCollectionOptions(formattedCollection);
+          // setIsLoading(false);
+        })
+        .catch((error) => {
+          // setIsLoading(false);
+          console.log("Fetched collections There was an error:", error);
+          return error;
+        });
       console.log("response", response);
       // return;
       // const updatedDiscounts = [...discounts, newDiscount];

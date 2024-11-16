@@ -21,9 +21,19 @@ import {
   Link,
   Text,
   HorizontalStack,
+  SkeletonPage,
+  Layout,
+  LegacyCard,
+  SkeletonBodyText,
+  TextContainer,
+  SkeletonDisplayText,
 } from "@shopify/polaris";
 import { useAppQuery, useAuthenticatedFetch } from "../hooks";
-import { ChevronRightMinor, SearchMajor } from "@shopify/polaris-icons";
+import {
+  ChevronLeftMinor,
+  ChevronRightMinor,
+  SearchMajor,
+} from "@shopify/polaris-icons";
 
 import axios from "axios";
 import { NavLink, useLocation } from "react-router-dom";
@@ -71,6 +81,8 @@ export function ProductsCard() {
   ] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoad, setIsLoad] = useState(false);
+
   const [modalLoader, setModalLoader] = useState(false);
   const fetch = useAuthenticatedFetch();
 
@@ -121,6 +133,10 @@ export function ProductsCard() {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState(deselectedOptions);
+  const [page, setPage] = useState(null);
+  const [prevPage, setPrevPage] = useState(null);
+  const [nextPage, setNextPage] = useState(null);
+
   console.log(deselectedOptions, "000000000000000000000000");
   const updateText = useCallback(
     (value) => {
@@ -230,21 +246,29 @@ export function ProductsCard() {
       console.error("Error fetching price rule", error.response.data);
     }
   };
-  const fetchDiscounts = async () => {
+  const fetchDiscounts = async (isPaginate = null) => {
     try {
-      const response = await axios.get(
-        "https://middleware-discountapp.mean3.ae/get-discounts",
-        {
-          headers: {
-            "api-key": "Do2j^jF",
-            "shop-name": "store-for-customer-account-test",
-            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-            "shopify-api-token": "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",
-          },
-        }
-      );
+      setIsLoad(true);
+      let apiUrl = "api/get-discounts?limit=50";
+      if (isPaginate) {
+        console.log("check", isPaginate);
+        apiUrl += `&page=${isPaginate}`;
+      } else {
+        apiUrl = "api/get-discounts?limit=50";
+      }
 
-      console.log("data success", response);
+      const response = await fetch(apiUrl, {
+        method: "GET",
+      })
+        .then((data) => {
+          return data.json();
+        })
+        .catch((error) => {
+          // setIsLoading(false);
+          console.log("Fetched collections There was an error:", error);
+          return error;
+        });
+      console.log("checker retrive price rule:", response.page.pgInfo);
 
       // return;
 
@@ -266,15 +290,18 @@ export function ProductsCard() {
       //   };
       // })
 
-      console.log("data main->>>>>>", response.data.data);
       //  return;
-      setDiscounts(response.data.data);
-      setfilterDiscounts(response.data.data);
+      setDiscounts(response.data);
+      setfilterDiscounts(response.data);
+      setPrevPage(response.page.pgInfo.prevPage?.query.page_info);
+      setNextPage(response.page.pgInfo.nextPage?.query.page_info);
+      setIsLoad(false);
     } catch (error) {
+      setIsLoad(false);
       console.error("Error fetching discounts:", error);
     }
   };
-
+  console.log("page bhai", page);
   // const handlePriceRulePopulate = async () => {
   //   // setIsLoading(true);
   //   console.log("chaling");
@@ -569,6 +596,28 @@ export function ProductsCard() {
     }
   };
 
+  const triggerPaginate = () => {
+    // apiUrl = `${apiUrl}&page_info=${page}`;
+    // console.log("url check", apiUrl);
+    // console.log("trigger front page", prevPage);
+    // return;
+    if (nextPage === null) {
+      fetchDiscounts(null);
+    } else {
+      fetchDiscounts(nextPage);
+    }
+  };
+  const triggerPaginateBack = () => {
+    // apiUrl = `${apiUrl}&page_info=${page}`;
+    // console.log("url check", apiUrl);
+    if (prevPage === null) {
+      fetchDiscounts(null);
+    } else {
+      fetchDiscounts(prevPage);
+    }
+  };
+
+  console.log("prev page", prevPage, "current page", page);
   useEffect(() => {
     if (state?.status === true) {
       console.log("comes in....");
@@ -640,19 +689,7 @@ export function ProductsCard() {
   };
   //original fetcher collection
   const handleFetchCollectionPopulate = async () => {
-    // setIsLoading(true);
-    const apiUrl = `https://middleware-discountapp.mean3.ae/get-collections?limit=50`;
-
-    await axios
-      .get(apiUrl, {
-        headers: {
-          "api-key": "Do2j^jF",
-          "shop-name": "store-for-customer-account-test",
-          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-          "shopify-api-token": "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",
-          "Content-Type": "application/json",
-        },
-      })
+    await fetch("api/get-collections?limit=50", { method: "GET" })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -660,14 +697,19 @@ export function ProductsCard() {
         return response.json(); // Assuming the response is in JSON format
       })
       .then((data) => {
-        // console.log(data.data); // This will log the fetched products
+        console.log("checker:", data.data); // This will log the fetched products
+
+        // return;
         // You can now use the 'data' variable to access your fetched products
         // Mapping the products data to the desired format
         const formattedCollection = data.data.map((collection) => ({
           label: collection.title,
           value: collection.id,
         }));
-        console.log("Fetched collections:", data); // Debugging line
+        console.log(
+          "Fetched collections now from backend:",
+          formattedCollection
+        ); // Debugging line
         // const deselectedOptions = useMemo(() => formattedCollection, []);
         // console.log(formattedCollection);
         setCollectionOptions(formattedCollection);
@@ -675,26 +717,8 @@ export function ProductsCard() {
       })
       .catch((error) => {
         // setIsLoading(false);
-        console.log("There was an error fetching the products:", error);
+        console.log("Fetched collections There was an error:", error);
       });
-
-    // if (response.ok) {
-    //   console.log("fetched products......", response.json());
-    //   // await refetchProductCount();
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.productsCreatedToast", {
-    //   //     count: productsCount,
-    //   //   }),
-    //   // });
-    // } else {
-    //   console.log("fetched products......", response);
-
-    //   setIsLoading(false);
-    //   // setToastProps({
-    //   //   content: t("ProductsCard.errorCreatingProductsToast"),
-    //   //   error: true,
-    //   // });
-    // }
   };
 
   //fetch price rules from backend
@@ -799,7 +823,7 @@ export function ProductsCard() {
     } else {
       // Filter the full list of discounts based on the current input value
       const filtered = discounts.filter((discount) =>
-        discount.code.includes(value)
+        discount.code.toLowerCase().includes(value.toLowerCase())
       );
       setfilterDiscounts(filtered);
     }
@@ -807,171 +831,229 @@ export function ProductsCard() {
 
   return (
     <Page title="" fullWidth>
-      {/* <Box paddingBlockStart="400" width="586px" background="bg-fill-info">
-        <Badge status="success" size="medium">
-          Active
-        </Badge>
-      </Box> */}
+      {isLoad ? (
+        <SkeletonPage primaryAction>
+          <Layout>
+            <Layout.Section>
+              <LegacyCard sectioned>
+                <SkeletonBodyText />
+              </LegacyCard>
+              <LegacyCard sectioned>
+                <TextContainer>
+                  <SkeletonDisplayText size="small" />
+                  <SkeletonBodyText />
+                </TextContainer>
+              </LegacyCard>
+              <LegacyCard sectioned>
+                <TextContainer>
+                  <SkeletonDisplayText size="small" />
+                  <SkeletonBodyText />
+                </TextContainer>
+              </LegacyCard>
+            </Layout.Section>
+          </Layout>
+        </SkeletonPage>
+      ) : (
+        <>
+          {" "}
+          <LegacyStack vertical spacing="loose">
+            <Text alignment="start" variant="heading3xl" as="h2">
+              All Discounts
+            </Text>
+            <LegacyStack vertical spacing="loose">
+              {toastVisible && (
+                <LegacyStack spacing="loose">
+                  <Badge status="success" size="medium">
+                    Discount Successfully Created
+                  </Badge>
+                </LegacyStack>
+              )}
 
-      <LegacyStack vertical spacing="loose">
-        <Text alignment="start" variant="heading3xl" as="h2">
-          All Discounts
-        </Text>
-        <LegacyStack vertical spacing="loose">
-          {toastVisible && (
-            <LegacyStack spacing="loose">
-              <Badge status="success" size="medium">
-                Discount Successfully Created
-              </Badge>
-            </LegacyStack>
-          )}
-
-          <LegacyStack alignment="trailing" distribution="equalSpacing">
-            <PolarisTextField
-              label="Filter discounts"
-              value={filterValue}
-              onChange={handleFilterDiscount}
-              placeholder="Search by title"
-              autoComplete="off"
-            />
-            <Button
-              // onClick={() => navigate("/AddDiscount")}
-              onClick={() => setIsModalOpen(true)}
-            >
-              Create Discount
-            </Button>
-          </LegacyStack>
-        </LegacyStack>
-        <LegacyStack distribution="fill">
-          <Box paddingBlock="0" width="100%" id="discount-section">
-            <Box padding="0" width="100%">
-              <div style={{ overflowX: "auto" }}>
-                <DataTable
-                  columnContentTypes={[
-                    "text",
-                    "text",
-                    "text",
-                    "text",
-                    "text",
-                    "text",
-                    "text",
-                  ]}
-                  headings={columns}
-                  rows={rows}
-                  verticalAlign="middle"
+              <LegacyStack alignment="trailing" distribution="equalSpacing">
+                <PolarisTextField
+                  label="Filter discounts"
+                  value={filterValue}
+                  onChange={handleFilterDiscount}
+                  placeholder="Search by title"
+                  autoComplete="off"
                 />
-              </div>
-            </Box>
-          </Box>
-        </LegacyStack>
-      </LegacyStack>
-
-      <Modal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Select discount type"
-        secondaryActions={[
-          {
-            content: "Cancel",
-            onAction: () => setIsModalOpen(false),
-          },
-        ]}
-      >
-        {/* <Modal.Section> */}
-        {[
-          {
-            id: 1,
-            name: "Amount off products",
-            description:
-              "Discount specific products or collections of products.",
-            tagValue: "Product discount",
-            nav: "AddDiscount",
-          },
-          {
-            id: 2,
-            name: "Buy X get Y",
-            description: "Discount products based on customer's purchase.",
-            tagValue: "Product discount",
-            nav: "AddDiscountBuyXGetYFree",
-          },
-          {
-            id: 3,
-            name: "Amount off order",
-            description: "Discount the total order amount.",
-            tagValue: "Order discount",
-            nav: "AddDiscountOrder",
-          },
-          {
-            id: 4,
-            name: "Free shipping",
-            description: "Offer free shipping on an order.",
-            tagValue: "Shipping discount",
-            nav: "AddDiscountShipping",
-          },
-        ].map((discount) => (
-          // main card
-          <button
-            onMouseEnter={(e) => {
-              // e.currentTarget.style.backgroundColor = "rgba(74, 74, 74, 0.2)"; // Change background on hover
-              e.currentTarget.style.cursor = "pointer"; // Change cursor to pointer on hover
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent"; // Reset background on mouse leave
-              e.currentTarget.style.cursor = "default"; // Reset cursor on mouse leave
-            }}
-            onClick={() => navigate(`/${discount.nav}`)}
+                <Button
+                  // onClick={() => navigate("/AddDiscount")}
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Create Discount
+                </Button>
+              </LegacyStack>
+            </LegacyStack>
+            <LegacyStack distribution="fill">
+              <Box paddingBlock="0" width="100%" id="discount-section">
+                <Box padding="0" width="100%">
+                  <div style={{ overflowX: "auto" }}>
+                    <DataTable
+                      columnContentTypes={[
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                      ]}
+                      headings={columns}
+                      rows={rows}
+                      verticalAlign="middle"
+                    />
+                  </div>
+                </Box>
+              </Box>
+            </LegacyStack>
+          </LegacyStack>
+          <Modal
+            open={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title="Select discount type"
+            secondaryActions={[
+              {
+                content: "Cancel",
+                onAction: () => setIsModalOpen(false),
+              },
+            ]}
+          >
+            {/* <Modal.Section> */}
+            {[
+              {
+                id: 1,
+                name: "Amount off products",
+                description:
+                  "Discount specific products or collections of products.",
+                tagValue: "Product discount",
+                nav: "AddDiscount",
+              },
+              {
+                id: 2,
+                name: "Buy X get Y",
+                description: "Discount products based on customer's purchase.",
+                tagValue: "Product discount",
+                nav: "AddDiscountBuyXGetYFree",
+              },
+              {
+                id: 3,
+                name: "Amount off order",
+                description: "Discount the total order amount.",
+                tagValue: "Order discount",
+                nav: "AddDiscountOrder",
+              },
+              {
+                id: 4,
+                name: "Free shipping",
+                description: "Offer free shipping on an order.",
+                tagValue: "Shipping discount",
+                nav: "AddDiscountShipping",
+              },
+            ].map((discount) => (
+              // main card
+              <button
+                onMouseEnter={(e) => {
+                  // e.currentTarget.style.backgroundColor = "rgba(74, 74, 74, 0.2)"; // Change background on hover
+                  e.currentTarget.style.cursor = "pointer"; // Change cursor to pointer on hover
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent"; // Reset background on mouse leave
+                  e.currentTarget.style.cursor = "default"; // Reset cursor on mouse leave
+                }}
+                onClick={() => navigate(`/${discount.nav}`)}
+                style={{
+                  backgroundColor: "transparent",
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: 10,
+                  marginBottom: 10,
+                  borderTop: 0,
+                  borderLeft: 0,
+                  borderRight: 0,
+                  borderBottom: discount.id === 4 ? 0 : "1px solid #676F7A", // Add borderBottom
+                  // marginRight: "-20px", // Extends the border to the left
+                  // marginRight: -39, // Extends the border to the right
+                  // paddingLeft: "20px", // Optional: Adds padding so content stays aligned
+                  // paddingRight: "-80px",
+                  paddingBottom: 12,
+                  padding: 10,
+                  flexWrap: "wrap",
+                  overflow: "hidden", // Hides the scrollbar
+                  gap: "5px",
+                }}
+                key={discount.id}
+              >
+                <div>
+                  {/* Adjust width here */}
+                  <Text alignment="start" variant="headingSm" as="h6">
+                    {discount.name}
+                  </Text>
+                  <div style={{ marginTop: 5 }}>
+                    <Text color="subdued" variant="headingXs" as="h6">
+                      {discount.description}
+                    </Text>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Badge>{discount.tagValue}</Badge>
+                  <Icon color="subdued" source={ChevronRightMinor} />
+                </div>
+              </button>
+            ))}
+            {/* </Modal.Section> */}
+          </Modal>
+          <div
             style={{
-              backgroundColor: "transparent",
-              width: "100%",
-              height: "100%",
+              marginTop: 10,
               display: "flex",
               flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: 10,
-              marginBottom: 10,
-              borderTop: 0,
-              borderLeft: 0,
-              borderRight: 0,
-              borderBottom: discount.id === 4 ? 0 : "1px solid #676F7A", // Add borderBottom
-              // marginRight: "-20px", // Extends the border to the left
-              // marginRight: -39, // Extends the border to the right
-              // paddingLeft: "20px", // Optional: Adds padding so content stays aligned
-              // paddingRight: "-80px",
-              paddingBottom: 12,
-              padding: 10,
-              flexWrap: "wrap",
-              overflow: "hidden", // Hides the scrollbar
-              gap: "5px",
+              gap: 5,
+              justifyContent: "center",
             }}
-            key={discount.id}
           >
             <div>
-              {/* Adjust width here */}
-              <Text alignment="start" variant="headingSm" as="h6">
-                {discount.name}
-              </Text>
-              <div style={{ marginTop: 5 }}>
-                <Text color="subdued" variant="headingXs" as="h6">
-                  {discount.description}
-                </Text>
-              </div>
+              <button
+                onClick={triggerPaginateBack}
+                kind="tertiary"
+                appearance="accent"
+                // style={{
+                //   backgroundColor: Style.default("transparent").when(
+                //     { hover: true },
+                //     "gray"
+                //   ),
+                // }}
+              >
+                <Icon source={ChevronLeftMinor} />
+              </button>
             </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Badge>{discount.tagValue}</Badge>
-              <Icon color="subdued" source={ChevronRightMinor} />
+            <div>
+              <button
+                onClick={triggerPaginate}
+                // kind={Style.default("tertiary").when({ hover: true }, "primary")}
+                // kind={Style.default("tertiary").when({ hover: true }, "primary")}
+                // appearance={Style.default("accent").when(
+                //   { hover: true },
+                //   "critical"
+                // )}
+              >
+                <Icon source={ChevronRightMinor} />
+              </button>
             </div>
-          </button>
-        ))}
-        {/* </Modal.Section> */}
-      </Modal>
+          </div>
+        </>
+      )}
     </Page>
   );
 }

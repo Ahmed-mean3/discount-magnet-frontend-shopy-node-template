@@ -3,12 +3,13 @@
 client_id = "5a93a634bcf240ddcec669fc42fd8ad0"
 name = "discount-magnet"
 handle = "discount-magnet"
-application_url = "https://wifi-two-linear-asbestos.trycloudflare.com"
+application_url = "https://myers-dakota-stadium-laser.trycloudflare.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
 dev_store_url = "store-for-customer-account-test.myshopify.com"
+include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -16,9 +17,9 @@ scopes = "read_customers,read_discounts,read_price_rules,read_products,write_cus
 
 [auth]
 redirect_urls = [
-  "https://wifi-two-linear-asbestos.trycloudflare.com/auth/callback",
-  "https://wifi-two-linear-asbestos.trycloudflare.com/auth/shopify/callback",
-  "https://wifi-two-linear-asbestos.trycloudflare.com/api/auth/callback"
+  "https://myers-dakota-stadium-laser.trycloudflare.com/auth/callback",
+  "https://myers-dakota-stadium-laser.trycloudflare.com/auth/shopify/callback",
+  "https://myers-dakota-stadium-laser.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

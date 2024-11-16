@@ -638,17 +638,79 @@ export default function AddDiscount() {
   const filteredDiscounts = discounts.filter((discount) =>
     discount?.title?.toLowerCase().includes(filterValue.toLowerCase())
   );
+
+  // const handleFetchCountries = async () => {
+  //   setIsLoading(true);
+
+  //   await fetch("api/countries", { method: "GET" })
+  //     .then((response) => {
+  //       if (!response.ok) {
+  //         throw new Error(`HTTP error! status: ${response.status}`);
+  //       }
+  //       return response.json(); // Assuming the response is in JSON format
+  //     })
+  //     .then((data) => {
+  //       // const formattedCountries = data.data.map((countries) => ({
+  //       //   label: countries.name,
+  //       //   value: countries.id,
+  //       // }));
+
+  //       // setCountriesOptions(formattedCountries);
+  //       setIsLoading(false);
+
+  //       console.log("caught", data);
+  //     })
+  //     .catch((error) => {
+  //       // setIsLoading(false);
+  //       console.log("There was an error fetching the customers:", error);
+  //     });
+  // };
+
   const handleFetchCollectionPopulate = async () => {
     // setIsLoading(true);
-    const apiUrl = `https://middleware-discountapp.mean3.ae/get-collections?limit=50`;
+
+    await fetch("api/get-collections?limit=50", { method: "GET" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json(); // Assuming the response is in JSON format
+      })
+      .then((data) => {
+        console.log("checker:", data.data); // This will log the fetched products
+
+        // return;
+        // You can now use the 'data' variable to access your fetched products
+        // Mapping the products data to the desired format
+        const formattedCollection = data.data.map((collection) => ({
+          label: collection.title,
+          value: collection.id,
+        }));
+        console.log(
+          "Fetched collections now from backend:",
+          formattedCollection
+        ); // Debugging line
+        // const deselectedOptions = useMemo(() => formattedCollection, []);
+        // console.log(formattedCollection);
+        setCollectionOptions(formattedCollection);
+        // setIsLoading(false);
+      })
+      .catch((error) => {
+        // setIsLoading(false);
+        console.log("Fetched collections There was an error:", error);
+      });
+
+    return;
+
+    const apiUrl = `/api/get-collections?limit=50`;
 
     await axios
       .get(apiUrl, {
         headers: {
-          "api-key": "Do2j^jF",
-          "shop-name": "store-for-customer-account-test",
-          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-          "shopify-api-token": "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",
+          // "api-key": "Do2j^jF",
+          // "shop-name": "store-for-customer-account-test",
+          // "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+          // "shopify-api-token": "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",
           "Content-Type": "application/json",
         },
       })
@@ -661,7 +723,10 @@ export default function AddDiscount() {
           label: collection.title,
           value: collection.id,
         }));
-        console.log("Fetched collections:", formattedCollection); // Debugging line
+        console.log(
+          "Fetched collections now from backend:",
+          formattedCollection
+        ); // Debugging line
         // const deselectedOptions = useMemo(() => formattedCollection, []);
         // console.log(formattedCollection);
         setCollectionOptions(formattedCollection);
@@ -669,7 +734,7 @@ export default function AddDiscount() {
       })
       .catch((error) => {
         // setIsLoading(false);
-        console.log("There was an error fetching the products:", error);
+        console.log("There was an error fetching the:", error);
       });
 
     // if (response.ok) {
@@ -692,6 +757,27 @@ export default function AddDiscount() {
   };
   const fetchPriceRule = async (price_rule_id) => {
     try {
+      const result = await fetch(`api/get-price_rule/${price_rule_id}`, {
+        method: "GET",
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json(); // Assuming the response is in JSON format
+        })
+        .then((data) => {
+          console.log("checker price rules:", data.data); // This will log the fetched products
+
+          return data.data.price_rules[0];
+        })
+        .catch((error) => {
+          // setIsLoading(false);
+          console.log("Fetched collections There was an error:", error);
+          return error;
+        });
+
+      return result;
       const apiUrl = `https://middleware-discountapp.mean3.ae/get-price_rule/${price_rule_id}`;
       const response = await axios.get(apiUrl, {
         headers: {
@@ -756,6 +842,7 @@ export default function AddDiscount() {
     handleFetchCustomers();
     handleFetchPopulate();
     handleFetchCollectionPopulate();
+    // handleFetchCountries();
   }, []);
   useEffect(() => {
     // fetchDiscounts();
@@ -1146,20 +1233,57 @@ export default function AddDiscount() {
 
       //  return;
       //  console.log('hardcode->>>>>>',_newDiscount)
-      const response = await axios.post(
-        "https://middleware-discountapp.mean3.ae/add-discount-code",
-        newDiscount,
-        {
-          headers: {
-            "api-key": "Do2j^jF",
-            "shop-name": "store-for-customer-account-test",
-            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-            "shopify-api-token": "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",
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log("response", response);
+      // const response = await axios.post(
+      //   "https://middleware-discountapp.mean3.ae/add-discount-code",
+      //   newDiscount,
+      //   {
+      //     headers: {
+      //       "api-key": "Do2j^jF",
+      //       "shop-name": "store-for-customer-account-test",
+      //       "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
+      //       "shopify-api-token": "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",
+      //       "Content-Type": "application/json",
+      //     },
+      //   }
+      // );
+      const response = await fetch("/api/add-discount-code", {
+        method: "POST",
+        body: JSON.stringify(newDiscount),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json(); // Assuming the response is in JSON format
+        })
+        .then((data) => {
+          console.log("checker price rule add:", data); // This will log the fetched products
+
+          return data.data;
+          // You can now use the 'data' variable to access your fetched products
+          // Mapping the products data to the desired format
+          const formattedCollection = data.data.map((collection) => ({
+            label: collection.title,
+            value: collection.id,
+          }));
+          console.log(
+            "Fetched collections now from backend:",
+            formattedCollection
+          ); // Debugging line
+          // const deselectedOptions = useMemo(() => formattedCollection, []);
+          // console.log(formattedCollection);
+          setCollectionOptions(formattedCollection);
+          // setIsLoading(false);
+        })
+        .catch((error) => {
+          // setIsLoading(false);
+          console.log("Fetched collections There was an error:", error);
+          return error;
+        });
+      console.log("responsedkdkdkdkkdkd", response);
       // return;
       // const updatedDiscounts = [...discounts, newDiscount];
       // setDiscounts(updatedDiscounts);
