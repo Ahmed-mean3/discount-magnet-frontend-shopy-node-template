@@ -7,7 +7,13 @@ import cors from "cors";
 import shopify from "./shopify.js";
 import productCreator from "./product-creator.js";
 import PrivacyWebhookHandlers from "./privacy.js";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import DiscountSchema from "./mongoSchema.js";
+// const morgan = require("morgan");
+// const apicache = require("apicache");
 
+dotenv.config();
 const PORT = parseInt(
   process.env.BACKEND_PORT || process.env.PORT || "3000",
   10
@@ -65,6 +71,34 @@ app.post(
 app.use("/api/*", shopify.validateAuthenticatedSession());
 
 app.use(express.json());
+
+app.get("/api/shop/data", async (_req, res) => {
+  try {
+    const client = new shopify.api.clients.Graphql({
+      session: res.locals.shopify.session,
+    });
+
+    // Fetch shop data
+    const data = await client.query({
+      data: {
+        query: `
+          query {
+            shop {
+              name
+              email
+              currencyCode
+            }
+          }
+        `,
+      },
+    });
+
+    res.status(200).send(data.body.data.shop);
+  } catch (error) {
+    console.error("Error getting shop data:", error);
+    res.status(500).send({ message: "Failed to fetch shop data" });
+  }
+});
 
 app.get("/api/products/count", async (_req, res) => {
   const countData = await shopify.api.rest.Product.count({
@@ -272,46 +306,13 @@ app.get("/api/get-discounts", async (req, res) => {
   }
 });
 
-app.get("/api/get-price_rule/:id", async (req, res) => {
-  try {
-    const priceRuleId = req.params.id;
-    if (!priceRuleId) {
-      return res.status(400).send({
-        status: false,
-        data: null,
-        message: "Missing Price Rule Id in the Parameters of the Request}",
-      });
-    }
-    // Session is built by the OAuth process
-
-    const response = await shopify.rest.PriceRule.find({
-      session: res.locals.shopify.session,
-      id: priceRuleId,
-    });
-
-    console.log("price rule recieved and sent to client", response.data);
-    // Response
-    res.status(200).send({
-      status: true,
-      data: response.data,
-      message: `price rule Retreived Successfully`,
-    });
-  } catch (error) {
-    console.log("Error fetching collections:", error);
-    res.status(500).send({
-      success: false,
-      message: "Failed to fetch collections",
-      error: error.message,
-    });
-  }
-});
-
 app.get("/api/prod", async (_req, res) => {
   const prodData = await shopify.api.rest.Product.all({
     session: res.locals.shopify.session,
   });
   res.status(200).send(prodData);
 });
+
 app.get("/api/collection", async (_req, res) => {
   const smartCollectionData = await shopify.api.rest.SmartCollection.all({
     session: res.locals.shopify.session,
@@ -325,6 +326,41 @@ app.get("/api/collection", async (_req, res) => {
   ];
   // console.log("server side", smartCollectionData);
   res.status(200).send(allCollections);
+});
+
+app.get("/api/get-price_rule/:id", async (req, res) => {
+  try {
+    // console.log("price rule id", req.params.id);
+    const priceRuleId = req.params.id; // Note: Query parameter instead of path parameter
+    if (!priceRuleId) {
+      return res.status(400).send({
+        status: false,
+        data: null,
+        message: "Missing Price Rule Id in the Parameters of the Request",
+      });
+    }
+    // Session is built by the OAuth process
+
+    const response = await shopify.api.rest.PriceRule.find({
+      session: res.locals.shopify.session,
+      id: priceRuleId,
+    });
+
+    console.log("price rule recieved and sent to client", response);
+    // Response
+    res.status(200).send({
+      status: true,
+      data: response,
+      message: `price rule Retreived Successfully`,
+    });
+  } catch (error) {
+    console.log("Error fetching collections:", error);
+    res.status(500).send({
+      success: false,
+      message: "Failed to fetch collections",
+      error: error.message,
+    });
+  }
 });
 
 app.post("/api/products", async (_req, res) => {
@@ -680,7 +716,23 @@ app.post("/api/add-discount-code", async (req, res) => {
 
     // Respond to client with both PriceRule and DiscountCode details
 
-    console.log("savedPriceRule", priceRule.id, savedDiscountCode.code);
+    const shopName = res.locals.shopify.session.shop;
+    console.log(
+      "savedPriceRule",
+      discount_type,
+      shopName,
+      priceRule,
+      savedDiscountCode.code
+    );
+
+    let DiscountMongoDb = new DiscountSchema({
+      discount_type: discount_type,
+      price_rule: priceRule,
+      discount_code: savedDiscountCode.code,
+      shopName,
+    });
+    await DiscountMongoDb.save();
+
     res.status(200).send({
       status: true,
       data: {
@@ -692,6 +744,205 @@ app.post("/api/add-discount-code", async (req, res) => {
   } catch (error) {
     console.error("Error creating discount:", error);
     res.status(400).send({ message: "Failed to create discount" });
+  }
+});
+
+app.put("/api/update-price_rule/:id", async (req, res) => {
+  try {
+    // console.log("price rule id", req.params.id);
+    const priceRuleId = req.params.id; // Note: Query parameter instead of path parameter
+    const { discount_type, price_rule, discount_code } = req.body;
+
+    if (!priceRuleId) {
+      return res.status(400).send({
+        status: false,
+        data: null,
+        message: "Missing Price Rule Id in the Parameters of the Request",
+      });
+    }
+    // Session is built by the OAuth process
+
+    const response = await shopify.api.rest.PriceRule.find({
+      session: res.locals.shopify.session,
+    });
+    response.id = priceRuleId;
+    if (price_rule.title.startsWith("CC_")) {
+      response.title = price_rule.title;
+    } else {
+      response.title = "CC_" + price_rule.title;
+    }
+    response.value_type = price_rule.value_type;
+    response.value = price_rule.value;
+    response.customer_selection = price_rule.customer_selection;
+    response.target_type = price_rule.target_type;
+    response.target_selection = price_rule.target_selection;
+    response.allocation_method = price_rule.allocation_method;
+    response.starts_at = price_rule.starts_at;
+    response.ends_at = price_rule.ends_at || undefined;
+    if (discount_type === "product") {
+      response.prerequisite_subtotal_range =
+        price_rule.prerequisite_subtotal_range || {};
+    }
+    if (discount_type === "product") {
+      response.prerequisite_to_entitlement_quantity_ratio =
+        price_rule.prerequisite_to_entitlement_quantity_ratio || {};
+    }
+    if (discount_type === "product") {
+      response.entitled_product_ids = price_rule.entitled_product_ids || [];
+      response.entitled_collection_ids =
+        price_rule.entitled_collection_ids || [];
+      response.prerequisite_product_ids =
+        price_rule.prerequisite_product_ids || [];
+      response.prerequisite_collection_ids =
+        price_rule.prerequisite_collection_ids || [];
+    }
+    if (
+      discount_type === "product" &&
+      price_rule.hasOwnProperty("prerequisite_to_entitlement_quantity_ratio")
+    )
+      if (price_rule.prerequisite_to_entitlement_quantity_ratio) {
+        response.prerequisite_to_entitlement_quantity_ratio =
+          price_rule.prerequisite_to_entitlement_quantity_ratio;
+      }
+    if (
+      price_rule.customer_selection === "prerequisite" &&
+      price_rule.prerequisite_customer_ids
+    ) {
+      response.prerequisite_customer_ids =
+        price_rule.prerequisite_customer_ids || [];
+    }
+    if (
+      price_rule.customer_selection === "prerequisite" &&
+      price_rule.customer_segment_prerequisite_ids
+    ) {
+      response.customer_segment_prerequisite_ids =
+        price_rule.customer_segment_prerequisite_ids || [];
+    }
+    if (
+      discount_type === "order" &&
+      price_rule.hasOwnProperty("prerequisite_subtotal_range") &&
+      price_rule.prerequisite_subtotal_range
+    ) {
+      response.prerequisite_subtotal_range =
+        price_rule.prerequisite_subtotal_range || undefined;
+    }
+    if (discount_type === "shipping") {
+      response.prerequisite_shipping_price_range =
+        price_rule.prerequisite_shipping_price_range || undefined;
+    }
+    if (
+      discount_type === "order" &&
+      price_rule.target_type === "shipping_line" &&
+      price_rule.target_selection === "entitled"
+    ) {
+      response.entitled_country_ids = price_rule.entitled_country_ids;
+    }
+    if (discount_type === "order") {
+      response.entitled_product_ids = price_rule.entitled_product_ids || [];
+      response.prerequisite_shipping_price_range =
+        price_rule.prerequisite_shipping_price_range || {};
+      // hasExcludeShippingRatesOver=
+      //   price_rule.hasExcludeShippingRatesOver || {};
+      // excludeShippingRatesOver= price_rule.excludeShippingRatesOver || {},
+      response.hasExcludeShippingRatesOver = {
+        value: true,
+      };
+      response.excludeShippingRatesOver = {
+        value: "21.00",
+      };
+    }
+    response.allocation_limit = price_rule.allocation_limit || undefined;
+    response.usage_limit = price_rule.usage_limit || undefined;
+    response.once_per_customer = price_rule.once_per_customer || false;
+    response.combinesWithProductDiscounts =
+      price_rule.combinesWithProductDiscounts || false;
+    response.combinesWithOrderDiscounts = {
+      value: price_rule.combinesWithOrderDiscounts || false,
+    };
+    response.combinesWithShippingDiscounts =
+      price_rule.combinesWithShippingDiscounts || false;
+
+    await response.save({
+      update: true,
+    });
+
+    //get discount code id
+
+    const discount_code_data = await shopify.api.rest.DiscountCode.all({
+      session: res.locals.shopify.session,
+      price_rule_id: priceRuleId,
+    });
+
+    //update discount data (from private db)
+
+    const result = await DiscountSchema.findOneAndUpdate(
+      { discount_code: discount_code }, // Query filter
+      { discount_type, price_rule: response, discount_code }, // Update data
+      { new: true } // Options
+    );
+
+    // update discount code (from shopify db)
+    const savedDiscountCode = new shopify.api.rest.DiscountCode({
+      session: res.locals.shopify.session,
+    });
+
+    savedDiscountCode.price_rule_id = priceRuleId;
+    savedDiscountCode.id = discount_code_data.data[0].id;
+    if (discount_code.startsWith("CC_")) {
+      savedDiscountCode.code = discount_code;
+    } else {
+      savedDiscountCode.code = "CC_" + discount_code;
+    }
+
+    await savedDiscountCode.save({
+      update: true,
+    });
+
+    console.log("price rule updated and sent to client", result);
+    // Response
+    res.status(200).send({
+      status: true,
+      data: { savedDiscountCode, response, result },
+      message: `price rule updated Successfully`,
+    });
+  } catch (error) {
+    console.log("Error update price rule:", error);
+    res.status(500).send({
+      success: false,
+      message: "Failed to update price rule",
+      error: error.message,
+    });
+  }
+});
+
+app.delete("/api/delete-discount", async (req, res) => {
+  try {
+    const id = req.query.id;
+
+    if (!id) {
+      return res.status(400).send({ message: "Id not given in params" });
+    }
+
+    const price_rule = await shopify.api.rest.DiscountCode.all({
+      session: res.locals.shopify.session,
+      price_rule_id: id,
+    });
+
+    const result = await DiscountSchema.findOneAndDelete({
+      discount_code: price_rule.data[0].code,
+    });
+    await shopify.api.rest.PriceRule.delete({
+      session: res.locals.shopify.session,
+      id: id,
+    });
+
+    console.log("success delete");
+    res.status(200).send({ message: "Discount deleted successfully" });
+  } catch (error) {
+    console.log("cannot delete", error);
+    res
+      .status(400)
+      .send({ message: "Can't delete discount", error: error.message });
   }
 });
 
@@ -709,4 +960,18 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
     );
 });
 
-app.listen(PORT);
+console.log("env", process.env.MONGO_URI);
+mongoose
+  .connect(`${process.env.MONGO_URI}`)
+  .then(() => {
+    app.listen(process.env.PORT || PORT, () => {
+      console.log(
+        `Database Connected Successfully and server is listening on this port ${
+          process.env.PORT || PORT
+        }`
+      );
+    });
+  })
+  .catch((err) => {
+    console.log(err);
+  });

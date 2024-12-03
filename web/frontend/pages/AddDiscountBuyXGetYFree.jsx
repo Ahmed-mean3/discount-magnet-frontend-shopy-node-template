@@ -36,7 +36,7 @@ import {
   SearchMajor,
   SearchMinor,
 } from "@shopify/polaris-icons";
-
+import spinner from "../assets/spin.gif";
 import axios from "axios";
 import { NavLink, useNavigate } from "react-router-dom";
 import DatePickerMain from "../components/DatePicker";
@@ -164,8 +164,8 @@ export default function AddDiscountBuyXGetYFree() {
   const renderChildren = useCallback(
     (selected) =>
       selected &&
-      (discountedValueCheck === "percentage" ||
-        discountedValueCheck === "fixed_amount") ? (
+        (discountedValueCheck === "percentage" ||
+          discountedValueCheck === "fixed_amount") ? (
         <div style={{ width: "20%" }}>
           <PolarisTextField
             prefix={discountedValueCheck === "percentage" ? "" : "$"}
@@ -185,8 +185,8 @@ export default function AddDiscountBuyXGetYFree() {
                 discountedValueCheck === "percentage" && parsedValue < 101
                   ? setMinPercentOffReq(value)
                   : discountedValueCheck === "fixed_amount"
-                  ? setMinAmountOffReq(value)
-                  : null;
+                    ? setMinAmountOffReq(value)
+                    : null;
               }
             }}
             error={
@@ -194,8 +194,8 @@ export default function AddDiscountBuyXGetYFree() {
                 ? "Minimum Percentage value required."
                 : discountedValueCheck === "fixed_amount" &&
                   minAmountOffReqError
-                ? "Minimum amount off value is required"
-                : ""
+                  ? "Minimum amount off value is required"
+                  : ""
             }
           />
         </div>
@@ -331,32 +331,56 @@ export default function AddDiscountBuyXGetYFree() {
 
   //get products or collection side effect.
   useEffect(() => {
+    console.log('inining')
+    if (_options.length > 0) {
+      setSelectedTags([]);
+      // set_SelectedTags_([])
+      set_Options([]);
+      // set_SelectedOptions_([]);
+      // setSelectedOptions([])
+      set_SelectedTags([]);
+      set_SelectedOptions([])
+      // _selectedTags, _selectedOptions
+    }
     const updatedOptions =
       appliesTo === "specific_collection"
         ? CollectionOptions.map((collection) => ({
-            value: collection.value,
-            label: collection.label,
-          }))
+          value: collection.value,
+          label: collection.label,
+        }))
         : ProductOptions.map((product) => ({
-            value: product.value,
-            label: product.label,
-          }));
+          value: product.value,
+          label: product.label,
+        }));
 
     set_Options(updatedOptions);
   }, [ProductOptions, CollectionOptions, appliesTo]);
 
   //buy products or collection side effect.
   useEffect(() => {
+
+
+    if (_options_.length > 0) {
+      setSelectedTags([]);
+      // set_SelectedTags_([])
+      set_Options_([]);
+      // set_SelectedOptions_([]);
+      // setSelectedOptions([])
+      set_SelectedTags_([]);
+      set_SelectedOptions_([])
+      // _selectedTags, _selectedOptions
+    }
+
     const updatedOptions =
       _appliesTo === "specific_collection"
         ? _CollectionOptions.map((collection) => ({
-            value: collection.value,
-            label: collection.label,
-          }))
+          value: collection.value,
+          label: collection.label,
+        }))
         : ProductOptions_.map((product) => ({
-            value: product.value,
-            label: product.label,
-          }));
+          value: product.value,
+          label: product.label,
+        }));
 
     set_Options_(updatedOptions);
   }, [ProductOptions_, _appliesTo, _CollectionOptions]);
@@ -991,15 +1015,15 @@ export default function AddDiscountBuyXGetYFree() {
           title: newDiscountCode,
           value_type:
             discountedValueCheck === "free" ||
-            discountedValueCheck !== "fixed_amount"
+              discountedValueCheck !== "fixed_amount"
               ? "percentage"
               : "fixed_amount", // fixed_amount  OR percentage
           value:
             discountedValueCheck === "fixed_amount"
               ? `-${minAmountOffReq}.0`
               : discountedValueCheck === "free"
-              ? "-100.00"
-              : `-${minPercentOffReq}.0`, //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
+                ? "-100.00"
+                : `-${minPercentOffReq}.0`, //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
           customer_selection:
             checkCustomerSelected === "SC" || checkCustomerSelected === "SCS"
               ? "prerequisite"
@@ -1020,17 +1044,17 @@ export default function AddDiscountBuyXGetYFree() {
           //must buy collection or product
           ...(_appliesTo === "specific_collection"
             ? {
-                //work remain on collection fetch it first
-                prerequisite_collection_ids: _prodIds,
-              }
+              //work remain on collection fetch it first
+              prerequisite_collection_ids: _prodIds,
+            }
             : { prerequisite_product_ids: _prodIds }),
 
           //get products for free or some amount or some percentage off
           ...(appliesTo === "specific_collection"
             ? { entitled_collection_ids: prodIds }
             : {
-                entitled_product_ids: prodIds,
-              }),
+              entitled_product_ids: prodIds,
+            }),
           // entitled_product_ids: [prodIds],
 
           //define number of products needs to buy or get from above spcified collection or products
@@ -1042,43 +1066,43 @@ export default function AddDiscountBuyXGetYFree() {
           // Make sure entitled_product_ids is an array
           ...(purchaseTypeSelected &&
             purchaseTypeSelected !== "otp" && {
-              entitled_product_ids:
-                purchaseTypeSelected === "sub"
-                  ? subscriptionProducts
-                  : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
-            }),
+            entitled_product_ids:
+              purchaseTypeSelected === "sub"
+                ? subscriptionProducts
+                : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
+          }),
 
           // Conditionally add prerequisite if discountedValueCheck is "MPA"
           ...(discountedValueCheck === "MPA" &&
             minPercentOffReq && {
-              prerequisite_subtotal_range: {
-                greater_than_or_equal_to: minPercentOffReq,
-              },
-            }),
+            prerequisite_subtotal_range: {
+              greater_than_or_equal_to: minPercentOffReq,
+            },
+          }),
 
           // Conditionally add prerequisite if discountedValueCheck is "MQI"
           ...(discountedValueCheck === "MQI" &&
             minAmountOffReq && {
-              prerequisite_to_entitlement_quantity_ratio: {
-                prerequisite_quantity: minAmountOffReq,
-                entitledQuantity: 1,
-              },
-              prerequisite_product_ids: prodIds, // Only add when MQI is selected
-            }),
+            prerequisite_to_entitlement_quantity_ratio: {
+              prerequisite_quantity: minAmountOffReq,
+              entitledQuantity: 1,
+            },
+            prerequisite_product_ids: prodIds, // Only add when MQI is selected
+          }),
           // Add prerequisite_customer_ids if applicable
           ...(checkCustomerSelected === "SC" ||
-          (checkCustomerSelected === "SCS" && customerIds.length > 0)
+            (checkCustomerSelected === "SCS" && customerIds.length > 0)
             ? { prerequisite_customer_ids: customerIds }
             : {}),
 
           //exclude shipping rates value
           ...(excludeShippingRates &&
             excludeShippingRatesValue > 0 && {
-              hasExcludeShippingRatesOver: { value: true },
-              excludeShippingRatesOver: {
-                value: excludeShippingRatesValue + ".00",
-              },
-            }),
+            hasExcludeShippingRatesOver: { value: true },
+            excludeShippingRatesOver: {
+              value: excludeShippingRatesValue + ".00",
+            },
+          }),
 
           usage_limit: usageLimitValue,
           once_per_customer: !!oneUserPerCustomerchecked,
@@ -1415,8 +1439,8 @@ export default function AddDiscountBuyXGetYFree() {
         _appliesTo === "specific_collection"
           ? "Search Collection"
           : _isLoading
-          ? "loading..."
-          : "Search Products"
+            ? "loading..."
+            : "Search Products"
       }
       onChange={_updateText_}
       value={_inputValue_}
@@ -1432,8 +1456,8 @@ export default function AddDiscountBuyXGetYFree() {
         appliesTo === "specific_collection"
           ? "Search Collection"
           : isLoading
-          ? "loading..."
-          : "Search Products"
+            ? "loading..."
+            : "Search Products"
       }
       onChange={_updateText}
       value={_inputValue}
@@ -1738,7 +1762,6 @@ export default function AddDiscountBuyXGetYFree() {
             <div
               style={{
                 fontWeight: "500",
-                fontWeight: "500",
                 marginBottom: 10,
                 fontSize: "13px",
                 color: "gray",
@@ -1846,7 +1869,6 @@ export default function AddDiscountBuyXGetYFree() {
             </div>
             <div
               style={{
-                fontWeight: "500",
                 fontWeight: "500",
                 marginBottom: 10,
                 fontSize: "13px",
@@ -2115,36 +2137,53 @@ export default function AddDiscountBuyXGetYFree() {
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-start",
+                // justifyContent: "flex-start",
                 gap: "10px",
                 width: "100%",
               }}
             >
-              <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                <PolarisTextField
-                  label="Select a start date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(value) => {
-                    setSelectedDate(value);
-                  }}
-                />
-                {codeStartDateError && (
-                  <Text as="p" color="critical">
-                    Start Date is required.
-                  </Text>
-                )}
-              </FormLayout>
-
-              <PolarisTextField
-                label="Start time"
-                type="time"
-                value={startsAtTime}
-                onChange={(value) => {
-                  setStartsAtTime(value);
+              <div
+                style={{
+                  // backgroundColor: "yellow",
+                  display: "flex",
+                  flexDirection: "row",
+                  // flexGrow: 1,
+                  // justifyContent: "space-between",
+                  width: "100%",
+                  gap: "12px",
                 }}
-                style={{ flexGrow: 1, width: "100%" }} // Increases width
-              />
+              >
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Select a start date"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(value) => {
+                      setSelectedDate(value);
+                    }}
+                  />
+                  {codeStartDateError && (
+                    <Text as="p" color="critical">
+                      Start Date is required.
+                    </Text>
+                  )}
+                </div>
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Start time"
+                    type="time"
+                    value={startsAtTime}
+                    onChange={(value) => {
+                      setStartsAtTime(value);
+                    }}
+                    style={{ flexGrow: 1, width: "100%" }} // Increases width
+                  />
+                </div>
+              </div>
             </div>
 
             <div style={{ marginTop: 10, marginBottom: 10 }}>
@@ -2159,36 +2198,48 @@ export default function AddDiscountBuyXGetYFree() {
                 style={{
                   marginTop: 10,
                   display: "flex",
-                  justifyContent: "flex-start",
-                  justifyItems: "center",
+                  // justifyContent: "flex-start",
                   gap: "10px",
+                  width: "100%",
                 }}
               >
-                {/* <DatePickerMain
-                label="Select an end date"
-                initialDate={modifyDate(selectedDateEnd)}
-                onDateChange={handleDateChangeEnd}
-              /> */}
-
-                <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                  <PolarisTextField
-                    label="Select an end date"
-                    type="date"
-                    value={selectedDateEnd}
-                    onChange={(value) => {
-                      setSelectedDateEnd(value);
-                    }}
-                  />
-                </FormLayout>
-                <PolarisTextField
-                  label="End time"
-                  type="time"
-                  value={endAtTime}
-                  onChange={(value) => {
-                    setEndAtTime(value);
+                <div
+                  style={{
+                    // backgroundColor: "yellow",
+                    display: "flex",
+                    flexDirection: "row",
+                    // flexGrow: 1,
+                    // justifyContent: "space-between",
+                    width: "100%",
+                    gap: "12px",
                   }}
-                  // error={codeStartDateError ? "Start Date is required." : ""}
-                />
+                >
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="Select an end date"
+                      type="date"
+                      value={selectedDateEnd}
+                      onChange={(value) => {
+                        setSelectedDateEnd(value);
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="End time"
+                      type="time"
+                      value={endAtTime}
+                      onChange={(value) => {
+                        setEndAtTime(value);
+                      }}
+                    // error={codeStartDateError ? "Start Date is required." : ""}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -2326,10 +2377,10 @@ export default function AddDiscountBuyXGetYFree() {
           }}
         >
           {modalLoader ? (
-            <Spinner
-              color="white"
-              accessibilityLabel="Small spinner example"
-              size="small"
+            <img
+              src={spinner}
+              alt="Loading..."
+              style={{ width: "20px", height: "20px" }}
             />
           ) : (
             "Create Discount"

@@ -36,7 +36,7 @@ import {
   SearchMajor,
   SearchMinor,
 } from "@shopify/polaris-icons";
-
+import spinner from "../assets/spin.gif";
 import axios from "axios";
 import { NavLink, useNavigate } from "react-router-dom";
 import DatePickerMain from "../components/DatePicker";
@@ -1732,36 +1732,53 @@ export default function AddDiscountShipping() {
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-start",
+                // justifyContent: "flex-start",
                 gap: "10px",
                 width: "100%",
               }}
             >
-              <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                <PolarisTextField
-                  label="Select a start date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(value) => {
-                    setSelectedDate(value);
-                  }}
-                />
-                {codeStartDateError && (
-                  <Text as="p" color="critical">
-                    Start Date is required.
-                  </Text>
-                )}
-              </FormLayout>
-
-              <PolarisTextField
-                label="Start time"
-                type="time"
-                value={startsAtTime}
-                onChange={(value) => {
-                  setStartsAtTime(value);
+              <div
+                style={{
+                  // backgroundColor: "yellow",
+                  display: "flex",
+                  flexDirection: "row",
+                  // flexGrow: 1,
+                  // justifyContent: "space-between",
+                  width: "100%",
+                  gap: "12px",
                 }}
-                style={{ flexGrow: 1, width: "100%" }} // Increases width
-              />
+              >
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Select a start date"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(value) => {
+                      setSelectedDate(value);
+                    }}
+                  />
+                  {codeStartDateError && (
+                    <Text as="p" color="critical">
+                      Start Date is required.
+                    </Text>
+                  )}
+                </div>
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Start time"
+                    type="time"
+                    value={startsAtTime}
+                    onChange={(value) => {
+                      setStartsAtTime(value);
+                    }}
+                    style={{ flexGrow: 1, width: "100%" }} // Increases width
+                  />
+                </div>
+              </div>
             </div>
 
             <div style={{ marginTop: 10, marginBottom: 10 }}>
@@ -1776,36 +1793,49 @@ export default function AddDiscountShipping() {
                 style={{
                   marginTop: 10,
                   display: "flex",
-                  justifyContent: "flex-start",
-                  justifyItems: "center",
+                  // justifyContent: "flex-start",
                   gap: "10px",
+                  width: "100%",
                 }}
               >
-                {/* <DatePickerMain
-                label="Select an end date"
-                initialDate={modifyDate(selectedDateEnd)}
-                onDateChange={handleDateChangeEnd}
-              /> */}
-
-                <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                  <PolarisTextField
-                    label="Select an end date"
-                    type="date"
-                    value={selectedDateEnd}
-                    onChange={(value) => {
-                      setSelectedDateEnd(value);
-                    }}
-                  />
-                </FormLayout>
-                <PolarisTextField
-                  label="End time"
-                  type="time"
-                  value={endAtTime}
-                  onChange={(value) => {
-                    setEndAtTime(value);
+                <div
+                  style={{
+                    // backgroundColor: "yellow",
+                    display: "flex",
+                    flexDirection: "row",
+                    // flexGrow: 1,
+                    // justifyContent: "space-between",
+                    width: "100%",
+                    gap: "12px",
                   }}
-                  // error={codeStartDateError ? "Start Date is required." : ""}
-                />
+                >
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="Select an end date"
+                      type="date"
+                      value={selectedDateEnd}
+                      onChange={(value) => {
+                        setSelectedDateEnd(value);
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="End time"
+                      type="time"
+                      value={endAtTime}
+                      onChange={(value) => {
+                        setEndAtTime(value);
+                      }}
+                      // error={codeStartDateError ? "Start Date is required." : ""}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -1942,10 +1972,10 @@ export default function AddDiscountShipping() {
           }}
         >
           {modalLoader ? (
-            <Spinner
-              color="white"
-              accessibilityLabel="Small spinner example"
-              size="small"
+            <img
+              src={spinner}
+              alt="Loading..."
+              style={{ width: "20px", height: "20px" }}
             />
           ) : (
             "Create Discount"

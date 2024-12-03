@@ -3,29 +3,30 @@
 client_id = "38aaf4139f78d5a424df9647822e4002"
 name = "discount_app_ahmed"
 handle = "discount_app_ahmed"
-application_url = "https://exclude-icq-sunshine-forests.trycloudflare.com"
+application_url = "https://washington-theatre-nitrogen-beauty.trycloudflare.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
 dev_store_url = "store-for-customer-account-test.myshopify.com"
+include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,read_discounts,read_price_rules,read_products,write_customers,write_discounts,write_price_rules,write_products"
+scopes = "read_customers,read_discounts,read_price_rules,read_products,unauthenticated_read_product_inventory,unauthenticated_read_product_pickup_locations,write_customers,write_discounts,write_price_rules,write_products"
 
 [auth]
 redirect_urls = [
-  "https://exclude-icq-sunshine-forests.trycloudflare.com/auth/callback",
-  "https://exclude-icq-sunshine-forests.trycloudflare.com/auth/shopify/callback",
-  "https://exclude-icq-sunshine-forests.trycloudflare.com/api/auth/callback"
+  "https://washington-theatre-nitrogen-beauty.trycloudflare.com/auth/callback",
+  "https://washington-theatre-nitrogen-beauty.trycloudflare.com/auth/shopify/callback",
+  "https://washington-theatre-nitrogen-beauty.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-07"
 
 [app_proxy]
-url = "https://exclude-icq-sunshine-forests.trycloudflare.com/myApp"
+url = "https://washington-theatre-nitrogen-beauty.trycloudflare.com/myApp"
 subpath = "proxy"
 prefix = "apps"
 

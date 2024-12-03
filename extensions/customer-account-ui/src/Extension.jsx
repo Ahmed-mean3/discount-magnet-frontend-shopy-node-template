@@ -8,6 +8,11 @@ import {
   Image,
   useApi,
   useAuthenticatedAccountCustomer,
+  useShop,
+  useCustomer,
+  useSessionToken,
+  useShippingAddress,
+
 } from "@shopify/ui-extensions-react/customer-account";
 import { useEffect, useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
@@ -31,6 +36,8 @@ import {
   Icon,
   Grid,
   TextField,
+  SkeletonImage,
+  Banner,
 } from "@shopify/ui-extensions-react/checkout";
 import copy from "copy-to-clipboard";
 export default reactExtension(
@@ -39,29 +46,35 @@ export default reactExtension(
 );
 
 function Extension() {
+  const api = useApi();
+  const { id } = useAuthenticatedAccountCustomer();
   const [discountCodes, setDiscountCodes] = useState([]);
   const [userDiscountProducts, setUserDiscountProducts] = useState([]);
   const [userDiscountCollection, setUserDiscountCollection] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [page, setPage] = useState(null);
-  const [prevPage, setPrevPage] = useState(null);
-  const api = useApi();
-  const { id } = useAuthenticatedAccountCustomer();
+  const [noInventory, setNoInventory] = useState([]);
+  const [isAddtoCart, setIsAddtoCart] = useState(false);
+  const [page, setPage] = useState(1);
+  // const [prevPage, setPrevPage] = useState(null);
+  const [checkoutUrl, setCheckoutUrl] = useState(null);
+  const [shopData, setShopData] = useState();
+  const [allCollections, setAllCollections] = useState([]);
+
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   const fetchData = async () => {
     const response = await api.fetch("api/prod");
     const json = await response.json();
     console.log("checkup", json);
   };
-  console.log("customerrrr", id);
-  // Function to filter discounts based on customers array
-  // Function to filter discounts based on customers array
+
   function filterDiscountsByCustomer(discounts) {
     return discounts.filter((discount) => {
       const { prerequisite_customer_ids, customer_segment_prerequisite_ids } =
         discount.priceRuleDetails;
-
       // Convert customerId to a number for correct comparison
       const _id = Number(id);
       // If both arrays are null or empty, automatically add the discount
@@ -88,49 +101,27 @@ function Extension() {
 
   const fetchDiscounts = async (isPaginate = null) => {
     try {
-      setLoading(true);
+      // console.log("page nooo", shopData);
+      // setLoading(true);
       let apiUrl =
-        "https://middleware-discountapp.mean3.ae/get-discounts?limit=12";
+        "https://test-shop-backend.vercel.app/get-discounts?limit=50";
       if (isPaginate) {
         apiUrl += `&page=${isPaginate}`;
       } else {
-        apiUrl =
-          "https://middleware-discountapp.mean3.ae/get-discounts?limit=12";
+        apiUrl = "https://test-shop-backend.vercel.app/get-discounts?limit=50";
       }
-      console.log(
-        "check function gets accurate page info?",
-        apiUrl,
-        "check state forward",
-        page,
-        "check state backward",
-        prevPage
-      );
       const response = await axios.get(apiUrl, {
         headers: {
-          "api-key": "Do2j^jF",
-          "shop-name": "store-for-customer-account-test",
-          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-          "shopify-api-token": "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",
+          "api-key": `${process.env.API_DB_KEY}`,
+          "shop-name": `${shopData}`,
           "Content-Type": "application/json",
         },
       });
 
       const discountData = response.data.data;
 
-      // // Fetch price rule details for each discount
-      // const discountDetails = await Promise.all(
-      //   discountData.map(async (discount) => {
-      //     const priceRule = await fetchPriceRule(discount.price_rule_id);
-      //     return {
-      //       code: discount.code,
-      //       priceRuleDetails: priceRule,
-      //     };
-      //   })
-      // );
-      setPrevPage(response.data.page.prevPage);
-      setPage(response.data.page.forwardPage);
-      const customers = await fetchCustomers();
-      console.log("mathin", customers);
+      console.log("respon", response.data.data);
+
 
       const matched = filterDiscountsByCustomer(discountData);
       console.log("mathingggg....", matched);
@@ -150,14 +141,7 @@ function Extension() {
       // } else {
       //   apiUrl = "https://middleware-discountapp.mean3.ae/get-customers";
       // }
-      // console.log(
-      //   "check function gets accurate page info?",
-      //   apiUrl,
-      //   "check state forward",
-      //   page,
-      //   "check state backward",
-      //   prevPage
-      // );
+
       const response = await axios.get(apiUrl, {
         headers: {
           "api-key": "Do2j^jF",
@@ -182,121 +166,93 @@ function Extension() {
     if (page === null) {
       fetchDiscounts(null);
     } else {
+      setPage((prev) => prev + 1);
       fetchDiscounts(page);
     }
   };
   const triggerPaginateBack = () => {
     // apiUrl = `${apiUrl}&page_info=${page}`;
     // console.log("url check", apiUrl);
-    if (prevPage === null) {
+    if (page === null) {
       fetchDiscounts(null);
     } else {
-      fetchDiscounts(prevPage);
-    }
-  };
-  const fetchPriceRule = async (price_rule_id) => {
-    try {
-      const apiUrl = `https://middleware-discountapp.mean3.ae/get-price_rule/${price_rule_id}`;
-      const response = await axios.get(apiUrl, {
-        headers: {
-          "api-key": "Do2j^jF",
-          "shop-name": "store-for-customer-account-test",
-          "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-          "shopify-api-token": "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",
-          "Content-Type": "application/json",
-        },
-      });
-
-      return response.data.data.price_rules[0];
-    } catch (error) {
-      console.error("Error fetching price rule", error.response.data);
-    }
-  };
-
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const fetchCollectionProducts = async (_collection) => {
-    const allCollectionData = []; // Initialize an array to hold all collection data
-
-    for (let i = 0; i < _collection.length; i++) {
-      console.log("Processing collection ID:", _collection[i]);
-
-      const apiUrl = `https://middleware-discountapp.mean3.ae/get-products?isCollection=${_collection[i]}`;
-
-      try {
-        const response = await axios.get(apiUrl, {
-          headers: {
-            "api-key": "Do2j^jF",
-            "shop-name": "store-for-customer-account-test",
-            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-            "shopify-api-token": "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",
-            "Content-Type": "application/json",
-          },
-        });
-
-        const collectionData = response.data.data.collection;
-
-        if (collectionData) {
-          allCollectionData.push(collectionData); // Add collectionData to the array
-        }
-        console.log("vals", allCollectionData);
-
-        await delay(1000); // Wait for 1 second before making the next API call
-      } catch (error) {
-        console.error(
-          `Error fetching products for collection ID: ${_collection[i]}`,
-          error
-        );
+      if (page >= 1) {
+        setPage((prev) => prev - 1);
+        fetchDiscounts(page);
       }
     }
-
-    // Update state with the accumulated array after the loop
-    setUserDiscountCollection(allCollectionData);
   };
 
   const handleGetDiscountDetails = async (input) => {
     const isCollection = input.entitled_product_ids.length > 0 ? false : true;
-    let apiUrl = "https://middleware-discountapp.mean3.ae/get-products";
 
     try {
       if (isCollection) {
-        // // console.log("ids seamlessly getted", input.entitled_collection_ids);
-        // for (input.entitled_collection_ids in _collection) {
-        //   console.log("ids seamlessly getted", _collection);
-        //   apiUrl = `https://middleware-discountapp.mean3.ae/get-products?isCollection=${_collection}`;
-        //   const response = await axios.get(apiUrl, {
-        //     headers: {
-        //       "api-key": "Do2j^jF",
-        //       "shop-name": "store-for-customer-account-test",
-        //       "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-        //       "shopify-api-token": "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",
-        //       "Content-Type": "application/json",
-        //     },
-        //   });
-
-        //   const collectionData = response.data.data.collection;
-        //   setUserDiscountProducts([...userDiscountProducts, collectionData]);
-        // }
-        await fetchCollectionProducts(input.entitled_collection_ids);
+        // fetchCollectionProducts(input.entitled_collection_ids);
+        if (Array.isArray(input.entitled_collection_ids)) {
+          setUserDiscountCollection(
+            allCollections.filter((collection) =>
+              input.entitled_collection_ids.includes(
+                parseInt(collection.node.id.split("Collection/")[1])
+              )
+            )
+          );
+        }
       } else {
-        const response = await axios.get(apiUrl, {
-          headers: {
-            "api-key": "Do2j^jF",
-            "shop-name": "store-for-customer-account-test",
-            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-            "shopify-api-token": "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",
-            "Content-Type": "application/json",
-          },
-        });
-        const productsData = response.data.data.products;
+        api
+          .query(
+            `query getProducts($first: Int) {
+      products(first: $first) {
+        edges {
+          cursor
+          node {
+            id
+            title
+            featuredImage {
+          url
+        }
+        availableForSale
+        totalInventory
+        priceRange {
+          maxVariantPrice {
+            amount
+          }
+          minVariantPrice {
+            amount
+          }
+        }
+          }
+        }
+      }
+    }`,
+            {
+              variables: { first: 100 },
+            }
+          )
+          .then(({ data, errors }) => {
+            const productsData = data.products.edges;
 
-        // console.log("fetched products", productsData);
-        // setUserDiscountProducts(productsData);
+            const _data = productsData
+              .filter((product) => {
+                const productId = parseInt(
+                  product.node.id.split("/Product/")[1],
+                  10
+                );
+                console.log(
+                  "filtring....",
+                  productId,
+                  input.entitled_product_ids
+                );
 
-        const data = productsData.filter((product) =>
-          input.entitled_product_ids.includes(product.id)
-        );
-        setUserDiscountProducts(data);
+                // Filter based on the product ID
+                return input.entitled_product_ids.includes(productId);
+              })
+              .map((product) => product.node); // Extract only the `node` object
+
+            console.log("filtring....", _data);
+            setUserDiscountProducts(_data);
+          })
+          .catch(console.error);
       }
 
       // setUserDiscountProducts(productsData);
@@ -322,13 +278,309 @@ function Extension() {
       console.error("Failed to copy text: ", err);
     }
   };
+  // console.log("userDiscountCollection", userDiscountCollection);
+
+  const handleGetVariant = async (productId) => {
+    // console.log('product id', productId)
+    return await api
+      .query(
+        `query ($productId: ID!) {
+  product(id: $productId) {
+    title
+    variants(first: 10) {
+      edges {
+        node {
+          id
+          title
+        }
+      }
+    }
+  }
+}`,
+        {
+          variables: {
+            productId: productId,
+          },
+        }
+      )
+      .then(({ data, errors }) => {
+        if (errors) {
+          console.log("failed to get variant", errors);
+          setIsAddtoCart(false);
+
+        } else {
+          console.log("response data:", data); // Log full response
+          if (data?.product?.variants?.edges?.length > 0) {
+            return data.product.variants.edges[0].node.id;
+          } else {
+            console.log("No variants found for product:", productId);
+            setIsAddtoCart(false);
+
+            return null;
+          }
+        }
+      })
+      .catch((error) => {
+        setIsAddtoCart(false);
+
+        console.log("error failed to get variant", error);
+      });
+  };
+
+  const handlePostAddToCart = async (payload, type, discountCode) => {
+    console.log('discount code ', discountCode)
+    let unAvailable = [];
+    let lines = [];
+    let input = [];
+    const seenIds = new Set(); // Use a single Set for all deduplication
+
+    if (type === "Products") {
+      payload.forEach((val) => {
+        if (val.availableForSale) {
+          // Available products go to input
+          input.push(val);
+        } else {
+          // Unavailable products go to unAvailable
+          unAvailable.push(val);
+        }
+      });
+      setNoInventory(unAvailable);
+    }
+
+    setIsAddtoCart(true);
+
+    if (type === "Collections") {
+      input = payload.map((val) =>
+        val.node
+      );
+    }
+    console.log('dj', input, unAvailable)
+    // return;
+    for (let i = 0; i < input.length; i++) {
+      if (type === 'Products') {
+        console.log('vairant id getted via products', input[i])
+        await delay(1000);
+        const variantId = await handleGetVariant(input[i].id);
+        console.log('vairant id getted', variantId)
+        lines.push({
+          quantity: 1,
+          merchandiseId: variantId,
+        })
+      }
+      else {
+
+        for (let j = 0; j < input[i]?.products?.edges?.length; j++) {
+          await delay(1000); // Add a 1-second delay between each API call
+
+          if (input[i]?.products?.edges[j]?.node?.availableForSale) {
+            const variantId = await handleGetVariant(input[i]?.products?.edges[j]?.node?.id);
+            lines.push({
+              quantity: 1,
+              merchandiseId: variantId,
+            });
+          } else {
+            if (!seenIds.has(input[i]?.products?.edges[j]?.node?.id)) {
+              seenIds.add(input[i]?.products?.edges[j]?.node?.id);
+              unAvailable.push(input[i]?.products?.edges[j]?.node);
+            }
+          }
+        }
+        setNoInventory(unAvailable);
+      }
+    }
+    // console.log('user prod', lines, unAvailable);
+
+    // return;
+    await api
+      .query(
+        `mutation CreateCart($input: CartInput) {
+  cartCreate(input: $input) {
+    cart {
+      checkoutUrl
+      id
+      createdAt
+      updatedAt
+      discountCodes{
+        code
+      }
+      lines(first: 10) {
+        edges {
+          node {
+            id
+            merchandise {
+              ... on ProductVariant {
+                id
+              }
+            }
+          }
+        }
+      }
+      buyerIdentity {
+        email
+        countryCode
+        deliveryAddressPreferences {
+        __typename
+        }
+        preferences {
+          delivery {
+            deliveryMethod
+          }
+        }
+      }
+      attributes {
+        key
+        value
+      }
+      cost {
+        totalAmount {
+          amount
+          currencyCode
+        }
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalTaxAmount {
+          amount
+          currencyCode
+        }
+        totalDutyAmount {
+          amount
+          currencyCode
+        }
+      }
+    }
+  }
+}`,
+        {
+          variables: {
+            input: {
+              discountCodes: [`CC_${discountCode}`],
+              lines,
+              buyerIdentity: {
+                email: "ahmed-ansari@mean3.com",
+                countryCode: "CA",
+                // customerAccessToken: session,
+                deliveryAddressPreferences: {
+                  oneTimeUse: false,
+                  deliveryAddress: {
+                    address1: "150 Elgin Street",
+                    address2: "8th Floor",
+                    city: "Ottawa",
+                    province: "Ontario",
+                    country: "CA",
+                    zip: "K2P 1L4",
+                  },
+                },
+                preferences: {
+                  delivery: {
+                    deliveryMethod: "PICK_UP",
+                  },
+                },
+              },
+              attributes: {
+                key: "cart_attribute",
+                value: "This is a cart attribute",
+              },
+            },
+          },
+        }
+      )
+      .then(({ data, errors }) => {
+        if (errors) {
+          console.log("failed to mutate add to cart", errors);
+        } else {
+          console.log("result to mutate add to cart", data);
+          setCheckoutUrl(data?.cartCreate?.cart?.checkoutUrl);
+          lines = [];
+          unAvailable = [];
+        }
+      })
+      .catch((error) => {
+        console.log("error failed to mutate add to cart", error);
+      });
+    setIsAddtoCart(false);
+    // api.ui.overlay.close("my-modal");
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    api
+      .query(
+        `{
+  shop{
+    name
+    primaryDomain{
+      host
+      url
+    }
+  }
+}`,
+        {
+          variables: { first: 100 },
+        }
+      )
+      .then(({ data, errors }) => {
+        // setLoading(true);
+
+        setShopData(data?.shop?.primaryDomain?.host);
+        if (errors) {
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        setLoading(false);
+
+        console.log("error fetching shop name", error);
+      });
+
+    api
+      .query(
+        `{
+  collections(first: 200) {
+    edges {
+      node {
+      image{
+          url
+        }
+        id
+        title
+        products(first: 250) {
+          edges {
+            node {
+              id
+              title
+              availableForSale
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+      )
+      .then(({ data, errors }) => {
+        // setLoading(true);
+        setAllCollections(data?.collections?.edges);
+        if (errors) {
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        setLoading(false);
+
+        console.log("error fetching shop name", error);
+      });
+  }, [api.query]);
+  console.log("collections getted", allCollections);
 
   useEffect(() => {
     // fetchShowDetails();
     fetchData();
-    fetchDiscounts();
-  }, []);
-  console.log("detail", discountCodes);
+    if (shopData) {
+      fetchDiscounts();
+    }
+  }, [shopData]);
   return (
     <BlockStack
       // inlineAlignment="center"
@@ -347,7 +599,9 @@ function Extension() {
       >
         {/* <Box roundedAbove="sm" padding="tight"> */}
         {loading ? (
-          <Spinner accessibilityLabel="Loading Discounts" size="small" />
+          Array.from({ length: 12 }).map((_, index) => (
+            <SkeletonImage key={index} inlineSize={200} blockSize={200} />
+          ))
         ) : discountCodes.length > 0 ? (
           discountCodes.map((discount, index) => (
             <Card roundedAbove="sm" key={index}>
@@ -379,16 +633,16 @@ function Extension() {
                     {/* Adjust spacing between list items */}
                     <ListItem>
                       {discount.priceRuleDetails?.target_type ===
-                      "shipping_line"
+                        "shipping_line"
                         ? "Free Shipping"
                         : discount.priceRuleDetails
-                            ?.prerequisite_to_entitlement_quantity_ratio
-                            ?.prerequisite_quantity > 0 &&
+                          ?.prerequisite_to_entitlement_quantity_ratio
+                          ?.prerequisite_quantity > 0 &&
                           discount.priceRuleDetails
                             ?.prerequisite_to_entitlement_quantity_ratio
                             ?.entitled_quantity > 0
-                        ? "BuyXGetY Free"
-                        : "Amount off products"}
+                          ? "BuyXGetY Free"
+                          : "Amount off products"}
                     </ListItem>
                     <ListItem>Code</ListItem>
                   </List>
@@ -402,64 +656,82 @@ function Extension() {
                     <ListItem>
                       <Button
                         inlineAlignment="start"
-                        onPress={() =>
+                        onPress={() => {
+                          setNoInventory([])
+                          setCheckoutUrl(null);
+                          setIsAddtoCart(false);
                           handleGetDiscountDetails(discount.priceRuleDetails)
+                        }
+
                         }
                         overlay={
                           <Modal
                             id="my-modal"
                             padding
-                            title={`Discount Associated ${
-                              discount.priceRuleDetails.entitled_product_ids
-                                .length > 0
-                                ? "Products"
-                                : "Collections"
-                            }`}
+                            title={`Discount Associated ${discount.priceRuleDetails.entitled_product_ids
+                              .length > 0
+                              ? "Products"
+                              : "Collections"
+                              }`}
                           >
+                            {noInventory.length > 0 && <>
+                              <Banner
+                                status="warning"
+                                title={`Those inventory is out of stock i.e ${noInventory.map(
+                                  (item) => item.title
+                                )}`}
+                              />
+                              <BlockSpacer />
+                            </>}
                             {discount.priceRuleDetails.entitled_product_ids
-                              .length > 0 //add seperate collection ui after saving into sepereate state of api calls data.
-                              ? userDiscountProducts.map((product) => (
-                                  <>
-                                    <View
-                                      padding="base"
-                                      border="base"
-                                      borderRadius="large"
+                              .length > 0 && userDiscountProducts.length > 0 ? ( //add seperate collection ui after saving into sepereate state of api calls data.
+                              userDiscountProducts.map((product) => (
+                                <>
+                                  <View
+                                    padding="base"
+                                    border="base"
+                                    borderRadius="large"
+                                    key={product?.title}
+                                  >
+                                    <InlineStack
+                                      blockAlignment="center"
+                                      spacing="tight"
                                     >
-                                      <InlineStack
-                                        blockAlignment="center"
-                                        spacing="tight"
+                                      <Image
+                                        borderRadius="large"
+                                        source={
+                                          product?.featuredImage
+                                            ? `${product?.featuredImage?.url}?width=50&height=50`
+                                            : "https://via.placeholder.com/50x50?text=No Image"
+                                        }
+                                        fit="contain"
+                                      />
+                                      <BlockStack
+                                        display="inline"
+                                        // flexDirection="column"
+                                        spacing="extraTight"
+                                      // padding="loose"
                                       >
-                                        <Image
-                                          borderRadius="large"
-                                          source={
-                                            product.image
-                                              ? `${product.image.src}?width=50&height=50`
-                                              : "https://via.placeholder.com/50x50?text=No Image"
-                                          }
-                                          fit="contain"
-                                        />
-                                        <BlockStack
-                                          display="inline"
-                                          // flexDirection="column"
-                                          spacing="extraTight"
-                                          // padding="loose"
+                                        <Text emphasis="bold">
+                                          {product?.title}
+                                        </Text>
+                                        <Text
+                                          emphasis="bold"
+                                          appearance="success"
                                         >
-                                          <Text emphasis="bold">
-                                            {product.title}
-                                          </Text>
-                                          <Text
-                                            emphasis="bold"
-                                            appearance="success"
-                                          >
-                                            ${product?.variants[0]?.price}
-                                          </Text>
-                                        </BlockStack>
-                                      </InlineStack>
-                                    </View>
-                                    <InlineSpacer spacing="loose" />
-                                  </>
-                                ))
-                              : userDiscountCollection.map((collection) => (
+                                          $
+                                          {product?.priceRange?.maxVariantPrice
+                                            ?.amount || "0"}
+                                        </Text>
+                                      </BlockStack>
+                                    </InlineStack>
+                                  </View>
+                                  <InlineSpacer spacing="loose" />
+                                </>
+                              ))
+                            ) : userDiscountCollection.length > 0 ? (
+                              userDiscountCollection.map((collection) => (
+                                <>
                                   <View
                                     key={collection.id}
                                     padding="base"
@@ -473,8 +745,8 @@ function Extension() {
                                       <Image
                                         borderRadius="large"
                                         source={
-                                          collection.image
-                                            ? `${collection.image.src}?width=50&height=50`
+                                          collection.node
+                                            ? `${collection.node.image.url}?width=50&height=50`
                                             : "https://via.placeholder.com/50x50?text=No Image"
                                         }
                                         fit="contain"
@@ -483,21 +755,88 @@ function Extension() {
                                         display="inline"
                                         // flexDirection="column"
                                         spacing="extraTight"
-                                        // padding="loose"
+                                      // padding="loose"
                                       >
                                         <Text emphasis="bold">
-                                          {collection.title}
+                                          {collection?.node?.title}
                                         </Text>
                                         <Text
                                           emphasis="bold"
                                           appearance="subdued"
                                         >
-                                          {collection.products_count} products
+                                          {
+                                            collection?.node?.products?.edges
+                                              ?.length
+                                          }{" "}
+                                          products
                                         </Text>
                                       </BlockStack>
                                     </InlineStack>
                                   </View>
-                                ))}
+                                  <BlockSpacer />
+                                </>
+                              ))
+                            ) : discount.priceRuleDetails
+                              ?.entitled_collection_ids?.length === 0 &&
+                              discount.priceRuleDetails?.entitled_product_ids
+                                ?.length === 0 &&
+                              (discount.priceRuleDetails?.value_type ===
+                                "fixed_amount" ||
+                                discount.priceRuleDetails?.value_type ===
+                                "percentage") ? (
+                              <Text emphasis="bold" appearance="decorative">
+                                Products added to the cart are discounted based
+                                on designated amount off{" "}
+                                {discount.priceRuleDetails?.value_type !==
+                                  "percentage" && "$"}{" "}
+                                {Math.abs(
+                                  Math.round(
+                                    parseFloat(
+                                      discount.priceRuleDetails?.value ?? 0
+                                    )
+                                  )
+                                )}
+                                {discount.priceRuleDetails?.value_type !==
+                                  "fixed_amount" && "%"}{" "}
+                                an order
+                              </Text>
+                            ) : (
+                              <Text emphasis="bold" appearance="warning">
+                                No Products available
+                              </Text>
+                            )}
+                            {(userDiscountCollection.length > 0 ||
+                              userDiscountProducts.length > 0) && (
+                                <>
+                                  <BlockSpacer />
+                                  <BlockStack
+                                    inlineAlignment="end"
+                                    alignment="end"
+                                  >
+                                    {
+                                      checkoutUrl ? <Link
+                                        to={`${checkoutUrl}`}
+                                      >
+                                        Go to checkout
+                                      </Link> : <Button
+                                        loading={isAddtoCart}
+                                        kind="primary"
+                                        onPress={() => {
+                                          handlePostAddToCart(discount.priceRuleDetails.entitled_product_ids
+                                            .length > 0
+                                            ? userDiscountProducts : userDiscountCollection, discount.priceRuleDetails.entitled_product_ids
+                                              .length > 0
+                                            ? "Products"
+                                            : "Collections", discount.code)
+                                        }}
+                                      >
+                                        Create a cart
+                                      </Button>
+                                    }
+
+                                  </BlockStack>
+                                </>
+                              )}
                           </Modal>
                         }
                         kind="tertiary"
@@ -505,11 +844,11 @@ function Extension() {
                       >
                         {discount.priceRuleDetails?.entitled_collection_ids
                           ?.length === 0 &&
-                        discount.priceRuleDetails?.entitled_product_ids
-                          ?.length === 0 &&
-                        (discount.priceRuleDetails?.value_type ===
-                          "fixed_amount" ||
-                          discount.priceRuleDetails?.value_type ===
+                          discount.priceRuleDetails?.entitled_product_ids
+                            ?.length === 0 &&
+                          (discount.priceRuleDetails?.value_type ===
+                            "fixed_amount" ||
+                            discount.priceRuleDetails?.value_type ===
                             "percentage") ? (
                           <Text
                             style={{
@@ -536,7 +875,7 @@ function Extension() {
                             off an order
                           </Text>
                         ) : discount.priceRuleDetails?.target_type ===
-                            "shipping_line" &&
+                          "shipping_line" &&
                           discount.priceRuleDetails
                             ?.prerequisite_subtotal_range &&
                           !discount.priceRuleDetails
@@ -559,13 +898,13 @@ function Extension() {
                             )}
                           </Text>
                         ) : discount.priceRuleDetails?.target_type ===
-                            "shipping_line" &&
+                          "shipping_line" &&
                           !discount.priceRuleDetails.prerequisite_subtotal_range
                             ?.greater_than_or_equal_to ? (
                           `No minimum purchase requirement`
                         ) : discount.priceRuleDetails
-                            ?.prerequisite_to_entitlement_quantity_ratio
-                            ?.prerequisite_quantity > 0 &&
+                          ?.prerequisite_to_entitlement_quantity_ratio
+                          ?.prerequisite_quantity > 0 &&
                           discount.priceRuleDetails
                             ?.prerequisite_to_entitlement_quantity_ratio
                             ?.entitled_quantity > 0 ? (
@@ -594,10 +933,10 @@ function Extension() {
                             free offer
                           </Text>
                         ) : discount.priceRuleDetails
-                            ?.prerequisite_product_ids ||
+                          ?.prerequisite_product_ids ||
                           (discount.priceRuleDetails?.entitled_product_ids &&
                             discount.priceRuleDetails?.target_type !==
-                              "shipping_line") ? (
+                            "shipping_line") ? (
                           <Text
                             style={{
                               whiteSpace: "nowrap",
@@ -609,25 +948,25 @@ function Extension() {
                           >
                             {!(
                               discount.priceRuleDetails?.target_type ===
-                                "shipping_line" &&
+                              "shipping_line" &&
                               !discount.priceRuleDetails
                                 .prerequisite_subtotal_range
                                 ?.greater_than_or_equal_to
                             ) && "Avail off"}
                             {discount.priceRuleDetails?.value_type !==
                               "percentage" &&
-                            !(
-                              discount.priceRuleDetails?.target_type ===
+                              !(
+                                discount.priceRuleDetails?.target_type ===
                                 "shipping_line" &&
-                              !discount.priceRuleDetails
-                                .prerequisite_subtotal_range
-                                ?.greater_than_or_equal_to
-                            )
+                                !discount.priceRuleDetails
+                                  .prerequisite_subtotal_range
+                                  ?.greater_than_or_equal_to
+                              )
                               ? " $"
                               : " "}
                             {!(
                               discount.priceRuleDetails?.target_type ===
-                                "shipping_line" &&
+                              "shipping_line" &&
                               !discount.priceRuleDetails
                                 .prerequisite_subtotal_range
                                 ?.greater_than_or_equal_to
@@ -641,46 +980,42 @@ function Extension() {
                               )}
                             {!(
                               discount.priceRuleDetails?.target_type ===
-                                "shipping_line" &&
+                              "shipping_line" &&
                               !discount.priceRuleDetails
                                 .prerequisite_subtotal_range
                                 ?.greater_than_or_equal_to
                             ) &&
                               discount.priceRuleDetails?.value_type !==
-                                "fixed_amount" &&
+                              "fixed_amount" &&
                               "%"}{" "}
                             {!(
                               discount.priceRuleDetails?.target_type ===
-                                "shipping_line" &&
+                              "shipping_line" &&
                               !discount.priceRuleDetails
                                 .prerequisite_subtotal_range
                                 ?.greater_than_or_equal_to
                             ) && `Avail off${" "}`}
                             {discount.priceRuleDetails?.prerequisite_product_ids
                               ?.length > 0 ||
-                            discount.priceRuleDetails?.entitled_product_ids
-                              ?.length > 0
-                              ? `${
-                                  discount.priceRuleDetails
-                                    ?.entitled_product_ids?.length
-                                } Product${
-                                  discount.priceRuleDetails
-                                    ?.entitled_product_ids?.length !== 1
-                                    ? "s"
-                                    : ""
-                                }`
+                              discount.priceRuleDetails?.entitled_product_ids
+                                ?.length > 0
+                              ? `${discount.priceRuleDetails
+                                ?.entitled_product_ids?.length
+                              } Product${discount.priceRuleDetails
+                                ?.entitled_product_ids?.length !== 1
+                                ? "s"
+                                : ""
+                              }`
                               : discount.priceRuleDetails
-                                  ?.entitled_collection_ids?.length > 0
-                              ? ` ${
-                                  discount.priceRuleDetails
-                                    ?.entitled_collection_ids?.length
-                                } Collection${
-                                  discount.priceRuleDetails
-                                    ?.entitled_collection_ids?.length !== 1
-                                    ? "s"
-                                    : ""
+                                ?.entitled_collection_ids?.length > 0
+                                ? ` ${discount.priceRuleDetails
+                                  ?.entitled_collection_ids?.length
+                                } Collection${discount.priceRuleDetails
+                                  ?.entitled_collection_ids?.length !== 1
+                                  ? "s"
+                                  : ""
                                 }`
-                              : "Discount format or type needs to adjust????"}
+                                : "Discount format or type needs to adjust????"}
                           </Text>
                         ) : null}
                       </Button>
@@ -691,40 +1026,46 @@ function Extension() {
             </Card>
           ))
         ) : (
-          <Text>No discounts available</Text>
+          <View inlineAlignment="center">
+            <BlockSpacer />
+            <Icon alignment="center" size="large" source="warning" />
+            <Text>No discounts available</Text>
+            <BlockSpacer />
+          </View>
         )}
       </Grid>
-
       {/* </Box> */}
       {/* Pagination bars */}
-      <View inlineAlignment="center">
-        <InlineStack>
-          <Button
-            onPress={triggerPaginateBack}
-            kind="tertiary"
-            appearance="accent"
-            style={{
-              backgroundColor: Style.default("transparent").when(
+      {discountCodes.length > 0 && (
+        <View inlineAlignment="center">
+          <InlineStack>
+            <Button
+              onPress={triggerPaginateBack}
+              kind="tertiary"
+              appearance="accent"
+              style={{
+                backgroundColor: Style.default("transparent").when(
+                  { hover: true },
+                  "gray"
+                ),
+              }}
+            >
+              <Icon source="chevronLeft" />
+            </Button>
+            <Button
+              onPress={triggerPaginate}
+              // kind={Style.default("tertiary").when({ hover: true }, "primary")}
+              kind={Style.default("tertiary").when({ hover: true }, "primary")}
+              appearance={Style.default("accent").when(
                 { hover: true },
-                "gray"
-              ),
-            }}
-          >
-            <Icon source="chevronLeft" />
-          </Button>
-          <Button
-            onPress={triggerPaginate}
-            // kind={Style.default("tertiary").when({ hover: true }, "primary")}
-            kind={Style.default("tertiary").when({ hover: true }, "primary")}
-            appearance={Style.default("accent").when(
-              { hover: true },
-              "critical"
-            )}
-          >
-            <Icon source="chevronRight" />
-          </Button>
-        </InlineStack>
-      </View>
+                "critical"
+              )}
+            >
+              <Icon source="chevronRight" />
+            </Button>
+          </InlineStack>
+        </View>
+      )}
     </BlockStack>
   );
 }

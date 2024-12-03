@@ -36,7 +36,7 @@ import {
   SearchMajor,
   SearchMinor,
 } from "@shopify/polaris-icons";
-
+import spinner from "../assets/spin.gif";
 import axios from "axios";
 import { NavLink, useNavigate } from "react-router-dom";
 import DatePickerMain from "../components/DatePicker";
@@ -122,7 +122,7 @@ export default function AddDiscountOrder() {
     useState(false);
   const [checkselected, setCheckSelected] = useState("all");
   const [checkCustomerSelected, setCheckCustomerSelected] = useState("all");
-
+  const [currencyCode, setCurrencyCode] = useState("");
   const [minRequirementCheckselected, setMinRequirementCheckSelected] =
     useState("NMR");
   console.log("check selected", checkselected);
@@ -604,12 +604,31 @@ export default function AddDiscountOrder() {
       console.error("Error fetching price rule", error.response.data);
     }
   };
+  const handleGetShopInfo = async () => {
+    // setIsLoading(true);
 
+    await fetch("api/shop/data", { method: "GET" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json(); // Assuming the response is in JSON format
+      })
+      .then((data) => {
+        console.log("checker shop info:", data); // This will log the fetched products
+        setCurrencyCode(data.currencyCode);
+      })
+      .catch((error) => {
+        // setIsLoading(false);
+        console.log("error fetching shop info:", error);
+      });
+  };
   useEffect(() => {
     // fetchDiscounts();
     handleFetchCountries();
     handleFetchCustomers();
     handleFetchPopulate();
+    handleGetShopInfo();
     // handleFetchCollectionPopulate();
   }, []);
   useEffect(() => {
@@ -808,12 +827,12 @@ export default function AddDiscountOrder() {
         isValid = true;
       }
 
-      if (valueType === "percentage" && (!value || value > 0 || value < -100)) {
+      if (valueType === "percentage" && (!value || value < 1 || value > 100)) {
         setValueError(true);
         isValid = false;
         setModalLoader(false);
         return;
-      } else if (valueType === "fixed_amount" && (!value || value >= 0)) {
+      } else if (valueType === "fixed_amount" && (!value || value < 1)) {
         setValueError(true);
         isValid = false;
         setModalLoader(false);
@@ -829,7 +848,7 @@ export default function AddDiscountOrder() {
         price_rule: {
           title: newDiscountCode,
           value_type: valueType, // fixed_amount  OR percentage
-          value: value, //if the value of target_type is shipping_line, then only -100 is accepted. The value must be negative.
+          value: `-${value}`,
           customer_selection:
             checkCustomerSelected === "SC" || checkCustomerSelected === "SCS"
               ? "prerequisite"
@@ -1364,8 +1383,10 @@ export default function AddDiscountOrder() {
   const handleChange = (event) => {
     const inputValue = event;
     // Convert the value to a negative number
-    const negValue = -Math.abs(Number(inputValue));
-    setValue(negValue);
+    const val = Math.abs(Number(inputValue));
+
+    if (valueType === "percentage" && val > 100) return;
+    setValue(val);
   };
 
   function convertTo12HourFormat(time24) {
@@ -1374,6 +1395,7 @@ export default function AddDiscountOrder() {
     const adjustedHours = hours % 12 || 12; // Convert 0 hours to 12 for AM
     return `${adjustedHours}:${minutes} ${period}`;
   }
+
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
@@ -1430,22 +1452,20 @@ export default function AddDiscountOrder() {
               marginBottom: -110,
             }}
           >
+            <span style={{ fontWeight: "500" }}>Discount Value</span>
+
             <div
               style={{
                 display: "flex",
                 flexDirection: "row",
-                justifyContent: "flex-start",
-                alignItems: "flex-end",
-                flexWrap: "nowrap",
-                gap: "2%",
-                marginBottom: 10,
+                gap: "8px",
+                justifyContent: "flex-end",
               }}
             >
               <div style={{ width: "70%" }}>
                 <Select
-                  label={
-                    <span style={{ fontWeight: "500" }}>Discount Value</span>
-                  }
+                  // label={
+                  // }
                   options={filteredValueTypeOptions}
                   value={valueType}
                   onChange={(value) => setValueType(value)}
@@ -1454,7 +1474,10 @@ export default function AddDiscountOrder() {
               <div style={{ width: "30%", borderRadius: "20%" }}>
                 <PolarisTextField
                   suffix={valueType !== "fixed_amount" && "%"}
-                  prefix={valueType === "fixed_amount" && "$"}
+                  prefix={
+                    valueType === "fixed_amount" &&
+                    `${currencyCode === "USD" ? "$" : currencyCode}`
+                  }
                   // prefix="%"
                   // label="Discount Code"
                   type="number"
@@ -1716,36 +1739,53 @@ export default function AddDiscountOrder() {
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-start",
+                // justifyContent: "flex-start",
                 gap: "10px",
                 width: "100%",
               }}
             >
-              <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                <PolarisTextField
-                  label="Select a start date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(value) => {
-                    setSelectedDate(value);
-                  }}
-                />
-                {codeStartDateError && (
-                  <Text as="p" color="critical">
-                    Start Date is required.
-                  </Text>
-                )}
-              </FormLayout>
-
-              <PolarisTextField
-                label="Start time"
-                type="time"
-                value={startsAtTime}
-                onChange={(value) => {
-                  setStartsAtTime(value);
+              <div
+                style={{
+                  // backgroundColor: "yellow",
+                  display: "flex",
+                  flexDirection: "row",
+                  // flexGrow: 1,
+                  // justifyContent: "space-between",
+                  width: "100%",
+                  gap: "12px",
                 }}
-                style={{ flexGrow: 1, width: "100%" }} // Increases width
-              />
+              >
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Select a start date"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(value) => {
+                      setSelectedDate(value);
+                    }}
+                  />
+                  {codeStartDateError && (
+                    <Text as="p" color="critical">
+                      Start Date is required.
+                    </Text>
+                  )}
+                </div>
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Start time"
+                    type="time"
+                    value={startsAtTime}
+                    onChange={(value) => {
+                      setStartsAtTime(value);
+                    }}
+                    style={{ flexGrow: 1, width: "100%" }} // Increases width
+                  />
+                </div>
+              </div>
             </div>
 
             <div style={{ marginTop: 10, marginBottom: 10 }}>
@@ -1760,9 +1800,9 @@ export default function AddDiscountOrder() {
                 style={{
                   marginTop: 10,
                   display: "flex",
-                  justifyContent: "flex-start",
-                  justifyItems: "center",
+                  // justifyContent: "flex-start",
                   gap: "10px",
+                  width: "100%",
                 }}
               >
                 {/* <DatePickerMain
@@ -1771,25 +1811,43 @@ export default function AddDiscountOrder() {
                 onDateChange={handleDateChangeEnd}
               /> */}
 
-                <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                  <PolarisTextField
-                    label="Select an end date"
-                    type="date"
-                    value={selectedDateEnd}
-                    onChange={(value) => {
-                      setSelectedDateEnd(value);
-                    }}
-                  />
-                </FormLayout>
-                <PolarisTextField
-                  label="End time"
-                  type="time"
-                  value={endAtTime}
-                  onChange={(value) => {
-                    setEndAtTime(value);
+                <div
+                  style={{
+                    // backgroundColor: "yellow",
+                    display: "flex",
+                    flexDirection: "row",
+                    // flexGrow: 1,
+                    // justifyContent: "space-between",
+                    width: "100%",
+                    gap: "12px",
                   }}
-                  // error={codeStartDateError ? "Start Date is required." : ""}
-                />
+                >
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="Select an end date"
+                      type="date"
+                      value={selectedDateEnd}
+                      onChange={(value) => {
+                        setSelectedDateEnd(value);
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="End time"
+                      type="time"
+                      value={endAtTime}
+                      onChange={(value) => {
+                        setEndAtTime(value);
+                      }}
+                      // error={codeStartDateError ? "Start Date is required." : ""}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -1927,10 +1985,10 @@ export default function AddDiscountOrder() {
           }}
         >
           {modalLoader ? (
-            <Spinner
-              color="white"
-              accessibilityLabel="Small spinner example"
-              size="small"
+            <img
+              src={spinner}
+              alt="Loading..."
+              style={{ width: "20px", height: "20px" }}
             />
           ) : (
             "Create Discount"

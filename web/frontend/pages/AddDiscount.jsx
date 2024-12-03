@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Page,
   LegacyStack,
@@ -36,9 +36,9 @@ import {
   SearchMajor,
   SearchMinor,
 } from "@shopify/polaris-icons";
-
+import spinner from "../assets/spin.gif";
 import axios from "axios";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import DatePickerMain from "../components/DatePicker";
 import { check } from "prettier";
 import { createApp } from "@shopify/app-bridge";
@@ -47,7 +47,9 @@ import { getSessionToken } from "@shopify/app-bridge/utilities";
 
 export default function AddDiscount() {
   const navigate = useNavigate();
-  const [filterValue, setFilterValue] = useState("");
+  const location = useLocation();
+  const id = useRef(location?.state?.id || null);
+  console.log('check', id?.current)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAutomatic, setIsAutomatic] = useState(false);
   const [newDiscountTitle, setNewDiscountTitle] = useState("");
@@ -128,8 +130,8 @@ export default function AddDiscount() {
   const renderChildren = useCallback(
     (selected) =>
       selected &&
-      (minRequirementCheckselected === "MPA" ||
-        minRequirementCheckselected === "MQI") ? (
+        (minRequirementCheckselected === "MPA" ||
+          minRequirementCheckselected === "MQI") ? (
         <>
           <div style={{ width: "20%" }}>
             <PolarisTextField
@@ -155,8 +157,8 @@ export default function AddDiscount() {
                 minRequirementCheckselected === "MPA" && minPurchaseReqError
                   ? "Minimum purchase value required."
                   : minRequirementCheckselected === "MQI" && minQuantityReqError
-                  ? "Minimum quantity value is required"
-                  : ""
+                    ? "Minimum quantity value is required"
+                    : ""
               }
             />
           </div>
@@ -181,43 +183,7 @@ export default function AddDiscount() {
       minQuantityReqError,
     ]
   );
-  // useEffect(() => {
-  //   if (minRequirementCheckselected === "MPA") {
-  //     setMinQuantityReq(0);
-  //   } else if (minRequirementCheckselected === "MQI") {
-  //     setMinPurchaseReq(0);
-  //   }
-  // }, [minRequirementCheckselected, minQuantityReq, minPurchaseReq]);
-  // const _renderChildren = useCallback(
-  //   (_selected) =>
-  //     _selected ? (
-  //       <>
-  //         <div style={{ marginLeft: 27, width: "20%" }}>
-  //           <PolarisTextField
-  //             type="number"
-  //             label=""
-  //             value={minQuantityReq}
-  //             onChange={(value) => setMinQuantityReq(value)}
-  //             error={
-  //               minQuantityReqError ? "Minimum quantity value is required" : ""
-  //             }
-  //           />
-  //         </div>
-  //         <div
-  //           style={{
-  //             marginLeft: 25,
-  //             marginTop: 5,
-  //             fontSize: "13px",
-  //             color: "gray",
-  //             fontWeight: "500",
-  //           }}
-  //         >
-  //           Applies only to selected products.
-  //         </div>
-  //       </>
-  //     ) : null,
-  //   [minQuantityReq]
-  // );
+
   const handleChangeCustomerSelection = useCallback((value) => {
     {
       const [_selected] = value;
@@ -275,21 +241,12 @@ export default function AddDiscount() {
 
   const [_selectedTags, set_SelectedTags] = useState([]);
   const [checked, setChecked] = useState(false);
+  const [currencyCode, setCurrencyCode] = useState("");
   const [CustomerIdsError, setCustomerIdsError] = useState(false);
   const handleChangeCheckbox = useCallback(
     (newChecked) => setChecked(newChecked),
     []
   );
-  // const deselectedOptions = useMemo(
-  //   () => [
-  //     { value: "rustic", label: "Rustic" },
-  //     { value: "antique", label: "Antique" },
-  //     { value: "vinyl", label: "Vinyl" },
-  //     { value: "vintage", label: "Vintage" },
-  //     { value: "refurbished", label: "Refurbished" },
-  //   ],
-  //   []
-  // );
   const defaultListStyle = {
     marginTop: "10px",
     marginBottom: "20px",
@@ -308,20 +265,7 @@ export default function AddDiscount() {
     color: "black",
     fontWeight: "bold", // Make the bullet bolder
   };
-  // [appliesTo === "specific_collection" ? CollectionOptions : ProductOptions];
-  // const deselectedOptions = useMemo(
-  //   () =>
-  //     appliesTo === "specific_collection"
-  //       ? CollectionOptions.map((collection) => ({
-  //           value: collection.value,
-  //           label: collection.label,
-  //         }))
-  //       : ProductOptions.map((product) => ({
-  //           value: product.value,
-  //           label: product.label,
-  //         })),
-  //   [appliesTo, CollectionOptions, ProductOptions] // depend on appliesTo and options
-  // );
+
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [_selectedOptions, set_SelectedOptions] = useState([]);
   const [CustomerOptions, setCustomerOptions] = useState([]);
@@ -330,48 +274,43 @@ export default function AddDiscount() {
   const [options, setOptions] = useState([]);
   const [_options, set_Options] = useState([]);
 
-  // const queryParams = new URLSearchParams(window.location.search);
-  // const host = queryParams.get("host");
-
-  // const app = createApp({
-  //   apiKey: process.env.SHOPIFY_API_KEY,
-  //   shopOrigin: queryParams.get("shop"), // Extracts shop parameter
-  //   host: host,
-  // });
-
-  // getSessionToken(app).then((token) => {
-  //   // Token contains user information
-  //   const decodedToken = JSON.parse(atob(token.split(".")[1]));
-  //   console.log("tang taran", decodedToken); // Contains user ID, email, etc.
-  // });
   useEffect(() => {
+    if (options.length > 0 && !(id.current)) {
+      // return;
+      setSelectedTags([]);
+      set_SelectedTags([])
+      setOptions([]);
+      set_SelectedOptions([]);
+      setSelectedOptions([])
+    }
     const updatedOptions =
       appliesTo === "specific_collection"
         ? CollectionOptions.map((collection) => ({
-            value: collection.value,
-            label: collection.label,
-          }))
+          value: collection.value,
+          label: collection.label,
+        }))
         : ProductOptions.map((product) => ({
-            value: product.value,
-            label: product.label,
-          }));
+          value: product.value,
+          label: product.label,
+        }));
 
     setOptions(updatedOptions);
   }, [appliesTo, CollectionOptions, ProductOptions]);
   useEffect(() => {
+
     const updatedOptions =
       CustomerOptions.length > 0
         ? CustomerOptions.map((collection) => ({
-            value: collection.value,
-            label: collection.label,
-          }))
+          value: collection.value,
+          label: collection.label,
+        }))
         : [
-            { value: 1, label: "Rustic" },
-            { value: 2, label: "Antique" },
-            { value: 3, label: "Vinyl" },
-            { value: 4, label: "Vintage" },
-            { value: 5, label: "Refurbished" },
-          ];
+          { value: 1, label: "Rustic" },
+          { value: 2, label: "Antique" },
+          { value: 3, label: "Vinyl" },
+          { value: 4, label: "Vintage" },
+          { value: 5, label: "Refurbished" },
+        ];
 
     set_Options(updatedOptions);
   }, [appliesTo, CustomerOptions]);
@@ -435,18 +374,7 @@ export default function AddDiscount() {
       setSelectedDate(handleDateChange(new Date(), true));
     }
   }, []);
-  // // Example usage:
-  // const newDate = modifyDate("2024-08-05");
-  // console.log(newDate); // Output: 2024-07-06
 
-  const handleDateChangeEnd = (newDate) => {
-    // Get the year, month (zero-based index, so add 1), and day
-    const year = newDate.getFullYear();
-    const month = (newDate.getMonth() + 1).toString().padStart(2, "0"); // Ensures two-digit month
-    const day = newDate.getDate().toString().padStart(2, "0"); // Ensures two-digit day
-    console.log("Selected Date end:", `${year}-${month}-${day}`);
-    setSelectedDateEnd(`${year}-${month}-${day}`);
-  };
   console.log(options, "000000000000000000000000");
   const _updateText = useCallback(
     (value) => {
@@ -456,16 +384,16 @@ export default function AddDiscount() {
         set_Options(
           CustomerOptions.length > 0
             ? CustomerOptions.map((collection) => ({
-                value: collection.value,
-                label: collection.label,
-              }))
+              value: collection.value,
+              label: collection.label,
+            }))
             : [
-                { value: 1, label: "Rustic" },
-                { value: 2, label: "Antique" },
-                { value: 3, label: "Vinyl" },
-                { value: 4, label: "Vintage" },
-                { value: 5, label: "Refurbished" },
-              ]
+              { value: 1, label: "Rustic" },
+              { value: 2, label: "Antique" },
+              { value: 3, label: "Vinyl" },
+              { value: 4, label: "Vintage" },
+              { value: 5, label: "Refurbished" },
+            ]
         );
         return;
       }
@@ -487,13 +415,13 @@ export default function AddDiscount() {
         setOptions(
           appliesTo === "specific_collection"
             ? CollectionOptions.map((collection) => ({
-                value: collection.value,
-                label: collection.label,
-              }))
+              value: collection.value,
+              label: collection.label,
+            }))
             : ProductOptions.map((product) => ({
-                value: product.value,
-                label: product.label,
-              }))
+              value: product.value,
+              label: product.label,
+            }))
         );
         return;
       }
@@ -520,8 +448,53 @@ export default function AddDiscount() {
     // Return formatted time string
     return `${formattedHours}:${formattedMinutes}`;
   }
+  // const updateGetSelection = (selected) => {
+  //   // console.log('checkup', selected);
+  //   if (prodIds.length > 0) {
+  //     setProductIdsError(false);
+  //   }
+  //   setSelectedOptions(selected);
+
+  //   setProdIds((prev) => {
+  //     const updatedSet = new Set(prev);
+
+  //     // Iterate through previously selected items and remove those not in the current selection
+  //     prev.forEach((item) => {
+  //       if (!selected.includes(item)) {
+  //         updatedSet.delete(item);
+  //       }
+  //     });
+
+  //     // Add all currently selected items to the Set
+  //     selected.forEach((item) => updatedSet.add(item));
+
+  //     // Convert the Set back to an array and return it
+  //     return Array.from(updatedSet);
+  //   });
+  //   const selectedValue = selected.map((selectedItem) => {
+  //     // Find the option that matches the selected item's value
+  //     const matchedOption = options.find(
+  //       (option) => {
+  //         console.log('d', option.value, 'selectedItem', selectedItem)
+  //         option.value === selectedItem // Ensure you use `===` for strict equality
+  //       }
+  //     );
+
+  //     // If a match is found, capitalize the first word of the label and return it
+  //     if (matchedOption) {
+  //       const label = matchedOption.label;
+  //       return label.charAt(0).toUpperCase() + label.slice(1);
+  //     }
+
+  //     return null; // Return null if no match is found
+  //   });
+  //   setSelectedTags(selectedValue);
+  // }
+
   const updateSelection = useCallback(
     (selected) => {
+      // return;
+      // console.log('checkup12w', selected);
       if (prodIds.length > 0) {
         setProductIdsError(false);
       }
@@ -546,8 +519,12 @@ export default function AddDiscount() {
 
       const selectedValue = selected.map((selectedItem) => {
         // Find the option that matches the selected item's value
+        // console.log('checkup12w', options, selectedItem)
+
         const matchedOption = options.find(
-          (option) => option.value === selectedItem
+          (option) => {
+            return option.value === selectedItem // Ensure you use `===` for strict equality
+          }
         );
 
         // If a match is found, capitalize the first word of the label and return it
@@ -562,6 +539,9 @@ export default function AddDiscount() {
     },
     [options]
   );
+
+  console.log("selectedOptions", selectedOptions, "prodIds", prodIds, "selectedTags", selectedTags, "options", options);
+
   const _updateSelection = useCallback(
     (selected) => {
       // console.log("selected", selected);
@@ -606,7 +586,7 @@ export default function AddDiscount() {
     },
     [options]
   );
-  console.log("selected product->>>>>>", selectedTags);
+  // console.log("selected product->>>>>>", selectedTags);
 
   const discountTypeOptions = [
     { label: "Amount off products", value: "amount_off_products" },
@@ -629,45 +609,8 @@ export default function AddDiscount() {
     setItems_two([...items, newItem]);
   };
 
-  // useEffect(() => {
-  //   const savedDiscounts = JSON.parse(localStorage.getItem("discounts")) || [];
-  //   setDiscounts(savedDiscounts);
-  // }, []);
-
-  console.log("data", discounts);
-  const filteredDiscounts = discounts.filter((discount) =>
-    discount?.title?.toLowerCase().includes(filterValue.toLowerCase())
-  );
-
-  // const handleFetchCountries = async () => {
-  //   setIsLoading(true);
-
-  //   await fetch("api/countries", { method: "GET" })
-  //     .then((response) => {
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! status: ${response.status}`);
-  //       }
-  //       return response.json(); // Assuming the response is in JSON format
-  //     })
-  //     .then((data) => {
-  //       // const formattedCountries = data.data.map((countries) => ({
-  //       //   label: countries.name,
-  //       //   value: countries.id,
-  //       // }));
-
-  //       // setCountriesOptions(formattedCountries);
-  //       setIsLoading(false);
-
-  //       console.log("caught", data);
-  //     })
-  //     .catch((error) => {
-  //       // setIsLoading(false);
-  //       console.log("There was an error fetching the customers:", error);
-  //     });
-  // };
-
   const handleFetchCollectionPopulate = async () => {
-    // setIsLoading(true);
+    setIsLoading(true);
 
     await fetch("api/get-collections?limit=50", { method: "GET" })
       .then((response) => {
@@ -693,7 +636,7 @@ export default function AddDiscount() {
         // const deselectedOptions = useMemo(() => formattedCollection, []);
         // console.log(formattedCollection);
         setCollectionOptions(formattedCollection);
-        // setIsLoading(false);
+        setIsLoading(false);
       })
       .catch((error) => {
         // setIsLoading(false);
@@ -794,64 +737,27 @@ export default function AddDiscount() {
       console.error("Error fetching price rule", error.response.data);
     }
   };
-  const fetchDiscounts = async () => {
-    try {
-      const response = await axios.get(
-        "https://middleware-discountapp.mean3.ae/get-discounts",
-        {
-          headers: {
-            "api-key": "Do2j^jF",
-            "shop-name": "store-for-customer-account-test",
-            "shopify-api-key": "185e5520a93d7e0433e4ca3555f01b99",
-            "shopify-api-token": "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",
-          },
+  const handleGetShopInfo = async () => {
+    // setIsLoading(true);
+
+    await fetch("api/shop/data", { method: "GET" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      );
-
-      console.log("data success", response);
-      // return;
-
-      const discountDetails = await Promise.all(
-        response?.data?.data.map(async (discount) => {
-          const priceRule = await fetchPriceRule(discount.price_rule_id);
-          return {
-            code: discount.code,
-            priceRuleDetails: priceRule,
-          };
-        })
-      );
-
-      // const details = response?.data?.data.map(async (discount) => {
-      //   const priceRule = await fetchPriceRule(discount.price_rule_id);
-      //   return {
-      //     code: discount.code,
-      //     priceRuleDetails: priceRule,
-      //   };
-      // })
-
-      console.log("data main->>>>>>", discountDetails);
-      //  return;
-      setDiscounts(discountDetails);
-    } catch (error) {
-      console.error("Error fetching discounts:", error);
-    }
+        return response.json(); // Assuming the response is in JSON format
+      })
+      .then((data) => {
+        console.log("checker shop info:", data); // This will log the fetched products
+        setCurrencyCode(data.currencyCode);
+      })
+      .catch((error) => {
+        // setIsLoading(false);
+        console.log("error fetching shop info:", error);
+      });
   };
 
-  useEffect(() => {
-    // fetchDiscounts();
-    handleFetchCustomers();
-    handleFetchPopulate();
-    handleFetchCollectionPopulate();
-    // handleFetchCountries();
-  }, []);
-  useEffect(() => {
-    // fetchDiscounts();
-    if (appliesTo === "specific_collection") {
-      handleFetchCollectionPopulate();
-    } else {
-      handleFetchPopulate();
-    }
-  }, [appliesTo]);
+
   // useEffect(() => {
   //   fetchDiscounts();
   // }, [toastVisible]);
@@ -887,8 +793,10 @@ export default function AddDiscount() {
   const handleChange = (event) => {
     const inputValue = event;
     // Convert the value to a negative number
-    const negValue = -Math.abs(Number(inputValue));
-    setValue(negValue);
+    const val = Math.abs(Number(inputValue));
+
+    if (valueType === "percentage" && val > 100) return;
+    setValue(val);
   };
 
   function extractDate(dateString) {
@@ -948,7 +856,7 @@ export default function AddDiscount() {
       "0"
     )}`;
   }
-  const handleCreateDiscount = async () => {
+  const handleCreateDiscount = async (discountId = null) => {
     let isValid = false;
     // // const data = { status: true };
 
@@ -1014,12 +922,12 @@ export default function AddDiscount() {
       //   // console.log("smao");
       // } else
 
-      if (valueType === "percentage" && (!value || value > 0 || value < -100)) {
+      if (valueType === "percentage" && (!value || value < 1 || value > 100)) {
         setValueError(true);
         isValid = false;
         setModalLoader(false);
         return;
-      } else if (valueType === "fixed_amount" && (!value || value >= 0)) {
+      } else if (valueType === "fixed_amount" && (!value || value < 1)) {
         setValueError(true);
         isValid = false;
         setModalLoader(false);
@@ -1135,6 +1043,8 @@ export default function AddDiscount() {
       // }
 
       // return;
+
+      // console.log("valueeee", value);
       const newDiscount = {
         price_rule: {
           title: newDiscountCode,
@@ -1142,11 +1052,11 @@ export default function AddDiscount() {
           target_selection: "entitled",
           allocation_method:
             minRequirementCheckselected === "MPA" ||
-            minRequirementCheckselected === "MQI"
+              minRequirementCheckselected === "MQI"
               ? "each"
               : "across",
           value_type: valueType,
-          value: value,
+          value: `-${value}`,
           customer_selection:
             checkselected === "SC" || checkselected === "SCS"
               ? "prerequisite"
@@ -1171,7 +1081,7 @@ export default function AddDiscount() {
 
           // Add prerequisite_customer_ids if applicable
           ...(checkselected === "SC" ||
-          (checkselected === "SCS" && customerIds.length > 0)
+            (checkselected === "SCS" && customerIds.length > 0)
             ? { prerequisite_customer_ids: customerIds }
             : {}),
 
@@ -1181,32 +1091,32 @@ export default function AddDiscount() {
           // Conditionally add prerequisite if minRequirementCheckselected is "MPA"
           ...(minRequirementCheckselected === "MPA" &&
             minPurchaseReq && {
-              prerequisite_subtotal_range: {
-                greater_than_or_equal_to: minPurchaseReq,
-              },
-            }),
+            prerequisite_subtotal_range: {
+              greater_than_or_equal_to: minPurchaseReq,
+            },
+          }),
 
           // Conditionally add prerequisite if minRequirementCheckselected is "MQI"
           ...(minRequirementCheckselected === "MQI" &&
             minQuantityReq && {
-              prerequisite_to_entitlement_quantity_ratio: {
-                prerequisite_quantity: minQuantityReq,
-                entitled_quantity: 1,
-              },
-              prerequisite_product_ids: prodIds, // Only add when MQI is selected
-            }),
+            prerequisite_to_entitlement_quantity_ratio: {
+              prerequisite_quantity: minQuantityReq,
+              entitled_quantity: 1,
+            },
+            prerequisite_product_ids: prodIds, // Only add when MQI is selected
+          }),
         },
         discount_code: newDiscountCode,
         discount_type: "product",
       };
 
-      console.log(
-        "payloardCheckup...",
-        newDiscount,
-        "default end date if true it is->",
-        checked,
-        "selected end date if true if is->"
-      );
+      // console.log(
+      //   "payloardCheckup...",
+      //   newDiscount,
+      //   "default end date if true it is->",
+      //   checked,
+      //   "selected end date if true if is->"
+      // );
       // return;
       // return;
       //   const newDiscount = {
@@ -1229,7 +1139,7 @@ export default function AddDiscount() {
       //     discount_type: "product"
       // }
 
-      console.log("dynamic->>>>>>", targetSelection);
+      // console.log("dynamic->>>>>>", targetSelection);
 
       //  return;
       //  console.log('hardcode->>>>>>',_newDiscount)
@@ -1246,8 +1156,11 @@ export default function AddDiscount() {
       //     },
       //   }
       // );
-      const response = await fetch("/api/add-discount-code", {
-        method: "POST",
+      // await fetch(`api/get-price_rule/${_id}`, {
+      //   method: "GET",
+      const url = discountId ? `/api/update-price_rule/${discountId}` : "/api/add-discount-code"
+      const response = await fetch(url, {
+        method: discountId ? "PUT" : "POST",
         body: JSON.stringify(newDiscount),
         headers: {
           "Content-Type": "application/json",
@@ -1305,7 +1218,7 @@ export default function AddDiscount() {
       setSelectedTags([]);
       setShippingDiscountValue("");
       setCustomerSelection("all");
-      setStartsAt("");
+      // setStartsAt("");
       setEndAt("");
       setDiscountCodeType("");
       setPrerequisiteToEntitlementQuantityRatio([]);
@@ -1392,55 +1305,6 @@ export default function AddDiscount() {
       ? [{ label: "Percentage", value: "percentage" }]
       : AppliesToOptions;
 
-  // const handleFetchPopulate = async () => {
-  //   setIsLoading(true);
-
-  //   await fetch("api/products/all", { method: "GET" })
-  //     .then((response) => {
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! status: ${response.status}`);
-  //       }
-  //       return response.json(); // Assuming the response is in JSON format
-  //     })
-  //     .then((data) => {
-  //       // console.log(data.data); // This will log the fetched products
-  //       // You can now use the 'data' variable to access your fetched products
-  //       // Mapping the products data to the desired format
-  //       console.log("Fetched Products:", data); // Debugging line
-
-  //       const formattedProducts = data.data.map((product) => ({
-  //         label: product.title,
-  //         value: product.id,
-  //       }));
-  //       // console.log("Fetched Products:", formattedProducts); // Debugging line
-  //       // const deselectedOptions = useMemo(() => formattedProducts, []);
-  //       // console.log(formattedProducts);
-  //       setProductOptions(formattedProducts);
-  //       setIsLoading(false);
-  //     })
-  //     .catch((error) => {
-  //       setIsLoading(false);
-  //       console.error("There was an error fetching the products:", error);
-  //     });
-
-  //   // if (response.ok) {
-  //   //   console.log("fetched products......", response.json());
-  //   //   // await refetchProductCount();
-  //   //   // setToastProps({
-  //   //   //   content: t("ProductsCard.productsCreatedToast", {
-  //   //   //     count: productsCount,
-  //   //   //   }),
-  //   //   // });
-  //   // } else {
-  //   //   console.log("fetched products......", response);
-
-  //   //   setIsLoading(false);
-  //   //   // setToastProps({
-  //   //   //   content: t("ProductsCard.errorCreatingProductsToast"),
-  //   //   //   error: true,
-  //   //   // });
-  //   // }
-  // };
   const handleFetchPopulate = async () => {
     setIsLoading(true);
 
@@ -1542,6 +1406,80 @@ export default function AddDiscount() {
     //   // });
     // }
   };
+  const handleGetDiscount = async (_id) => {
+    try {
+      if (!_id) return;
+      // setDeleteLoader(true);
+      console.log("fetching single one", _id);
+      await fetch(`api/get-price_rule/${_id}`, {
+        method: "GET",
+      }).then((res) => {
+        if (res.ok) {
+          return res.json()
+        }
+        else {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+      })
+        .then((data) => {
+          // return;
+          console.log('single one fetched', data);
+          setNewDiscountCode(data.data.title);
+          setValue(Math.abs(Number(data.data.value)));
+          setValueType(data.data.value_type);
+          setAppliesTo(data?.data?.entitled_collection_ids.length > 0 ? "specific_collection" : "specific_product");
+          updateSelection(data?.data?.entitled_collection_ids.length > 0 ? data?.data?.entitled_collection_ids : data?.data?.entitled_product_ids)
+          setCheckSelected(data?.data?.customer_selection === "all" ? "SC" : "all");
+          setAllocationMethod(data?.data?.allocation_method === "each" ? "MPA" : "NMR");
+          if (data?.data?.prerequisite_customer_ids.length > 0) {
+            setCheckSelected("SC");
+            _updateSelection(data?.data?.prerequisite_customer_ids)
+          } else {
+            setCheckSelected("all");
+          }
+
+          if (data?.data?.usage_limit) {
+            setUsageLimitchecked(true)
+            setUsageLimitValue(data.data.usage_limit);
+          }
+
+          if (data?.data?.prerequisite_subtotal_range?.greater_than_or_equal_to) {
+            setMinRequirementCheckSelected("MPA");
+            setMinRequirementSelected("MPA");
+            setMinPurchaseReq(data.data.prerequisite_subtotal_range.greater_than_or_equal_to);
+          }
+
+          if (data?.data?.prerequisite_to_entitlement_quantity_ratio?.prerequisite_quantity) {
+            setMinRequirementCheckSelected("MQI");
+            setMinRequirementSelected("MQI");
+            setMinQuantityReq(data.data.prerequisite_to_entitlement_quantity_ratio.prerequisite_quantity)
+          }
+          setSelectedDate(data?.data?.starts_at.split("T")[0]);
+          const starts = data?.data?.starts_at.split("T")[1];
+          setStartsAtTime(starts.split(":00")[0]);
+          if (data?.data?.ends_at) {
+            setChecked(true)
+            setSelectedDateEnd(data?.data?.ends_at.split("T")[0]);
+            const starts = data?.data?.ends_at.split("T")[1];
+            setEndAtTime(starts.split(":00")[0]);
+          }
+
+          //customer filling work
+        })
+        .catch((error) => {
+          console.log('single one fetched error', error)
+
+          // setDeleteLoader(false);
+          // setOptionsModal(false);
+          // setConfirmDelete(false);
+          // console.log("Fetched collections There was an error:", error);
+        });
+    }
+    catch (error) {
+      console.log("There was an error getting single discount:", error);
+    }
+
+  };
 
   function titleCase(string) {
     return string
@@ -1561,9 +1499,8 @@ export default function AddDiscount() {
       // verticalContent={verticalContentMarkup}
       // placeholder="Autmn,Skat Board"
       autoComplete="off"
-      placeholder={`Specific ${
-        appliesTo === "specific_collection" ? "collections" : "products"
-      }`}
+      placeholder={`Specific ${appliesTo === "specific_collection" ? "collections" : "products"
+        }`}
     />
   );
   const _textField = (
@@ -1579,6 +1516,7 @@ export default function AddDiscount() {
   );
   const _removeTag = useCallback(
     (tag) => () => {
+      // return;
       // console.log("matched option->>>>>>", _options, tag);
       // return;
       // Find the option that matches the selected item's value
@@ -1635,6 +1573,7 @@ export default function AddDiscount() {
   );
   const removeTag = useCallback(
     (tag) => () => {
+      // return
       // console.log("matched option->>>>>>", tag);
       // return;
       // Find the option that matches the selected item's value
@@ -1718,12 +1657,29 @@ export default function AddDiscount() {
     // Set the discount code state
     setNewDiscountCode(discountCode);
   };
-  // console.log(
-  //   "checkingggg.......",
-  //   checkselected === "SC" &&
-  //     selectedOptions.length > 0 &&
-  //     selectedTags.length > 0
-  // );
+
+  useEffect(() => {
+    // fetchDiscounts();
+    handleFetchCustomers();
+    handleFetchPopulate();
+    handleFetchCollectionPopulate();
+    handleGetShopInfo();
+
+  }, []);
+  useEffect(() => {
+    // fetchDiscounts();
+    if (appliesTo === "specific_collection") {
+      handleFetchCollectionPopulate();
+    } else {
+      handleFetchPopulate();
+    }
+  }, [appliesTo]);
+
+  useEffect(() => {
+    if (id?.current && !(isLoading) && options) {
+      handleGetDiscount(id?.current)
+    }
+  }, [options])
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
@@ -1818,6 +1774,7 @@ export default function AddDiscount() {
               </Button>
             </div>
             <PolarisTextField
+              disabled={id?.current && !(isLoading) && options ? true : false}
               label="Discount Code"
               value={newDiscountCode}
               onChange={(value) => setNewDiscountCode(value)}
@@ -1831,8 +1788,7 @@ export default function AddDiscount() {
           {/* second card */}
           <div
             style={{
-              marginBottom: 5,
-
+              // marginBottom: 5,
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1868,37 +1824,33 @@ export default function AddDiscount() {
               <Text fontWeight="medium">Generate random code</Text>
             </Button>
           </div> */}
+            <span style={{ fontWeight: "500" }}>Discount Value</span>
 
             <div
               style={{
+                // backgroundColor: "yellow",
                 display: "flex",
                 flexDirection: "row",
-                justifyContent: "flex-start",
-                alignItems: "flex-end",
-                flexWrap: "nowrap",
-                gap: "2%",
+                gap: "8px",
+                justifyContent: "flex-end",
               }}
             >
               <div style={{ width: "70%" }}>
                 <Select
-                  label={
-                    <span style={{ fontWeight: "500" }}>Discount Value</span>
-                  }
+                  // label={
+                  // }
                   options={filteredValueTypeOptions}
                   value={valueType}
                   onChange={(value) => setValueType(value)}
                 />
               </div>
-              <div
-                style={{
-                  width: "30%",
-                  borderRadius: "20%",
-                  alignContent: "flex-end",
-                }}
-              >
+              <div style={{ width: "30%", borderRadius: "20%" }}>
                 <PolarisTextField
                   suffix={valueType !== "fixed_amount" && "%"}
-                  prefix={valueType === "fixed_amount" && "$"}
+                  prefix={
+                    valueType === "fixed_amount" &&
+                    `${currencyCode === "USD" ? "$" : currencyCode}`
+                  }
                   // prefix="%"
                   // label="Discount Code"
                   type="number"
@@ -1906,8 +1858,12 @@ export default function AddDiscount() {
                   onChange={handleChange}
                   error={valueError ? "Invalid Value" : ""}
                 />
+                {/* {valueError && (
+                  <div style={{ color: "red" }}>Invalid Value</div>
+                )} */}
               </div>
             </div>
+
             <div
               style={{
                 marginTop: 10,
@@ -2198,36 +2154,53 @@ export default function AddDiscount() {
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-start",
+                // justifyContent: "flex-start",
                 gap: "10px",
                 width: "100%",
               }}
             >
-              <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                <PolarisTextField
-                  label="Select a start date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(value) => {
-                    setSelectedDate(value);
-                  }}
-                />
-                {codeStartDateError && (
-                  <Text as="p" color="critical">
-                    Start Date is required.
-                  </Text>
-                )}
-              </FormLayout>
-
-              <PolarisTextField
-                label="Start time"
-                type="time"
-                value={startsAtTime}
-                onChange={(value) => {
-                  setStartsAtTime(value);
+              <div
+                style={{
+                  // backgroundColor: "yellow",
+                  display: "flex",
+                  flexDirection: "row",
+                  // flexGrow: 1,
+                  // justifyContent: "space-between",
+                  width: "100%",
+                  gap: "12px",
                 }}
-                style={{ flexGrow: 1, width: "100%" }} // Increases width
-              />
+              >
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Select a start date"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(value) => {
+                      setSelectedDate(value);
+                    }}
+                  />
+                  {codeStartDateError && (
+                    <Text as="p" color="critical">
+                      Start Date is required.
+                    </Text>
+                  )}
+                </div>
+
+                <div
+                  style={{ flex: 1, width: "50%" }} // Increases width
+                >
+                  <PolarisTextField
+                    label="Start time"
+                    type="time"
+                    value={startsAtTime}
+                    onChange={(value) => {
+                      setStartsAtTime(value);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             <div style={{ marginTop: 10, marginBottom: 10 }}>
@@ -2242,36 +2215,48 @@ export default function AddDiscount() {
                 style={{
                   marginTop: 10,
                   display: "flex",
-                  justifyContent: "flex-start",
-                  justifyItems: "center",
+                  // justifyContent: "flex-start",
                   gap: "10px",
+                  width: "100%",
                 }}
               >
-                {/* <DatePickerMain
-                label="Select an end date"
-                initialDate={modifyDate(selectedDateEnd)}
-                onDateChange={handleDateChangeEnd}
-              /> */}
-
-                <FormLayout condensed style={{ flexGrow: 1, width: "100%" }}>
-                  <PolarisTextField
-                    label="Select an end date"
-                    type="date"
-                    value={selectedDateEnd}
-                    onChange={(value) => {
-                      setSelectedDateEnd(value);
-                    }}
-                  />
-                </FormLayout>
-                <PolarisTextField
-                  label="End time"
-                  type="time"
-                  value={endAtTime}
-                  onChange={(value) => {
-                    setEndAtTime(value);
+                <div
+                  style={{
+                    // backgroundColor: "yellow",
+                    display: "flex",
+                    flexDirection: "row",
+                    // flexGrow: 1,
+                    // justifyContent: "space-between",
+                    width: "100%",
+                    gap: "12px",
                   }}
-                  // error={codeStartDateError ? "Start Date is required." : ""}
-                />
+                >
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="Select an end date"
+                      type="date"
+                      value={selectedDateEnd}
+                      onChange={(value) => {
+                        setSelectedDateEnd(value);
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{ flex: 1, width: "50%" }} // Increases width
+                  >
+                    <PolarisTextField
+                      label="End time"
+                      type="time"
+                      value={endAtTime}
+                      onChange={(value) => {
+                        setEndAtTime(value);
+                      }}
+                    // error={codeStartDateError ? "Start Date is required." : ""}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -2393,7 +2378,7 @@ export default function AddDiscount() {
         <button
           // loading={modalLoader}
           onClick={() =>
-            isAutomatic ? createDiscount() : handleCreateDiscount()
+            isAutomatic ? createDiscount() : handleCreateDiscount(id?.current && !(isLoading) && options ? id?.current : null)
           }
           primary
           style={{
@@ -2408,13 +2393,13 @@ export default function AddDiscount() {
           }}
         >
           {modalLoader ? (
-            <Spinner
-              color="white"
-              accessibilityLabel="Small spinner example"
-              size="small"
+            <img
+              src={spinner}
+              alt="Loading..."
+              style={{ width: "20px", height: "20px" }}
             />
           ) : (
-            "Create Discount"
+            id?.current && !(isLoading) && options ? "Save" : "Create Discount"
           )}
         </button>
       </div>
