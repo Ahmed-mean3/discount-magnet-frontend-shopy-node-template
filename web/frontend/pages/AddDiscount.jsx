@@ -29,6 +29,9 @@ import {
   Checkbox,
   Spinner,
   LegacyCard,
+  SkeletonDisplayText,
+  SkeletonBodyText,
+  Layout,
 } from "@shopify/polaris";
 import { useAppQuery, useAuthenticatedFetch } from "../hooks";
 import {
@@ -49,7 +52,7 @@ export default function AddDiscount() {
   const navigate = useNavigate();
   const location = useLocation();
   const id = useRef(location?.state?.id || null);
-  console.log('check', id?.current)
+  const [isGetDiscount, setIsGetDiscount] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAutomatic, setIsAutomatic] = useState(false);
   const [newDiscountTitle, setNewDiscountTitle] = useState("");
@@ -1446,13 +1449,13 @@ export default function AddDiscount() {
           if (data?.data?.prerequisite_subtotal_range?.greater_than_or_equal_to) {
             setMinRequirementCheckSelected("MPA");
             setMinRequirementSelected("MPA");
-            setMinPurchaseReq(data.data.prerequisite_subtotal_range.greater_than_or_equal_to);
+            setMinPurchaseReq(data?.data?.prerequisite_subtotal_range?.greater_than_or_equal_to);
           }
 
           if (data?.data?.prerequisite_to_entitlement_quantity_ratio?.prerequisite_quantity) {
             setMinRequirementCheckSelected("MQI");
             setMinRequirementSelected("MQI");
-            setMinQuantityReq(data.data.prerequisite_to_entitlement_quantity_ratio.prerequisite_quantity)
+            setMinQuantityReq(data?.data?.prerequisite_to_entitlement_quantity_ratio?.prerequisite_quantity);
           }
           setSelectedDate(data?.data?.starts_at.split("T")[0]);
           const starts = data?.data?.starts_at.split("T")[1];
@@ -1463,11 +1466,13 @@ export default function AddDiscount() {
             const starts = data?.data?.ends_at.split("T")[1];
             setEndAtTime(starts.split(":00")[0]);
           }
+          setIsGetDiscount(false);
 
           //customer filling work
         })
         .catch((error) => {
           console.log('single one fetched error', error)
+          setIsGetDiscount(false);
 
           // setDeleteLoader(false);
           // setOptionsModal(false);
@@ -1476,6 +1481,8 @@ export default function AddDiscount() {
         });
     }
     catch (error) {
+      setIsGetDiscount(false);
+
       console.log("There was an error getting single discount:", error);
     }
 
@@ -1676,135 +1683,217 @@ export default function AddDiscount() {
   }, [appliesTo]);
 
   useEffect(() => {
-    if (id?.current && !(isLoading) && options) {
-      handleGetDiscount(id?.current)
+    if (id?.current && !isGetDiscount &&
+      _options.length === 0) {
+      setIsGetDiscount(true);
     }
-  }, [options])
+    if (
+      id?.current &&
+      !isLoading &&
+
+      _options.length > 0
+    ) {
+      handleGetDiscount(id?.current);
+    }
+
+  }, [_options]);
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
-      title="Create product discount"
+      title={`${id?.current ? "Edit" : "Create"} product discount`}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          width: "100%",
-          gap: "20px",
-        }}
-      >
-        {/* main */}
-        <div
-          style={{
-            width: "70%",
-            // flex: 1,
-            // backgroundColor: "black",
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
-            // flexWrap: "wrap", // Ensures the items can wrap if needed
-            // marginBottom: 40,
-            // marginTop: 40,
-          }}
-        >
-          {/* first card */}
-          <div
-            style={{
-              marginBottom: 5,
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 20,
-                // gap: "120px",
-                // position: "absolute",
-                // top: -15,
-                // left: "0",
-                // right: "0",
-                // padding: "32px 32px", // Match the outer box padding
-                // paddingRight: "12px",
-                // paddingLeft: "12px",
-                boxSizing: "border-box",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  color: "black",
-                }}
-              >
-                Amount off products
-              </span>
-              <span
-                style={{ fontSize: "14px", fontWeight: "500", color: "gray" }}
-              >
-                Product discount
-              </span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: -20, // Adjust spacing as needed
-              }}
-            >
-              <Button
-                onClick={handleRandomCodeGenerate}
-                plain
-                style={{
-                  color: "blue", // Set the text color to blue
-                  backgroundColor: "transparent", // Make background transparent
-                  border: "none", // Remove default border
-                  fontWeight: "bold", // Set font weight to bold
-                }}
-              >
-                <Text fontWeight="medium">Generate random code</Text>
-              </Button>
-            </div>
-            <PolarisTextField
-              disabled={id?.current && !(isLoading) && options ? true : false}
-              label="Discount Code"
-              value={newDiscountCode}
-              onChange={(value) => setNewDiscountCode(value)}
-              error={codeError ? "Discount code is required." : ""}
-            />
-            <div style={{ color: "gray", fontWeight: "500", fontSize: "13px" }}>
-              Customer must enter this code at checkout
-            </div>
+
+      {isGetDiscount ? (
+        <Layout>
+          <div style={{ width: "100%", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Layout.Section fullWidth>
+              <LegacyCard subdued>
+                <LegacyCard.Section>
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                </LegacyCard.Section>
+              </LegacyCard>
+              <LegacyCard subdued>
+                <LegacyCard.Section>
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                </LegacyCard.Section>
+              </LegacyCard>
+              <LegacyCard subdued>
+                <LegacyCard.Section>
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                </LegacyCard.Section>
+              </LegacyCard>
+              <LegacyCard subdued>
+                <LegacyCard.Section>
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                </LegacyCard.Section>
+              </LegacyCard>
+              <LegacyCard subdued>
+                <LegacyCard.Section>
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                </LegacyCard.Section>
+              </LegacyCard>
+            </Layout.Section>
+            <Layout.Section oneHalf={true}>
+              <LegacyCard subdued>
+                <LegacyCard.Section>
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                  <div style={{ marginTop: 10 }} />
+
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                  <div style={{ marginTop: 10 }} />
+
+                  <TextContainer>
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </TextContainer>
+                </LegacyCard.Section>
+              </LegacyCard>
+            </Layout.Section>
           </div>
-
-          {/* second card */}
+        </Layout>
+      ) : (
+        <>
           <div
             style={{
-              // marginBottom: 5,
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
+              display: "flex",
+              flexDirection: "row",
               width: "100%",
-              height: "90%",
-              // flex: 1,
-
-              // paddingBottom: 860,
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-              position: "relative",
-              marginBottom: -110,
+              gap: "20px",
             }}
           >
-            {/* <div
+            {/* main */}
+            <div
+              style={{
+                width: "70%",
+                // flex: 1,
+                // backgroundColor: "black",
+                display: "flex",
+                flexDirection: "column",
+                gap: "15px",
+                // flexWrap: "wrap", // Ensures the items can wrap if needed
+                // marginBottom: 40,
+                // marginTop: 40,
+              }}
+            >
+              {/* first card */}
+              <div
+                style={{
+                  marginBottom: 5,
+                  padding: 10,
+                  borderColor: "#FFFFFF",
+                  borderRadius: "10px",
+                  width: "100%",
+                  height: "40%",
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #FFFFFF",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 20,
+                    // gap: "120px",
+                    // position: "absolute",
+                    // top: -15,
+                    // left: "0",
+                    // right: "0",
+                    // padding: "32px 32px", // Match the outer box padding
+                    // paddingRight: "12px",
+                    // paddingLeft: "12px",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      color: "black",
+                    }}
+                  >
+                    Amount off products
+                  </span>
+                  <span
+                    style={{ fontSize: "14px", fontWeight: "500", color: "gray" }}
+                  >
+                    Product discount
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginBottom: -20, // Adjust spacing as needed
+                  }}
+                >
+                  <Button
+                    onClick={handleRandomCodeGenerate}
+                    plain
+                    style={{
+                      color: "blue", // Set the text color to blue
+                      backgroundColor: "transparent", // Make background transparent
+                      border: "none", // Remove default border
+                      fontWeight: "bold", // Set font weight to bold
+                    }}
+                  >
+                    <Text fontWeight="medium">Generate random code</Text>
+                  </Button>
+                </div>
+                <PolarisTextField
+                  disabled={id?.current && !(isLoading) && options ? true : false}
+                  label="Discount Code"
+                  value={newDiscountCode}
+                  onChange={(value) => setNewDiscountCode(value)}
+                  error={codeError ? "Discount code is required." : ""}
+                />
+                <div style={{ color: "gray", fontWeight: "500", fontSize: "13px" }}>
+                  Customer must enter this code at checkout
+                </div>
+              </div>
+
+              {/* second card */}
+              <div
+                style={{
+                  // marginBottom: 5,
+                  padding: 10,
+                  borderColor: "#FFFFFF",
+                  borderRadius: "10px",
+                  width: "100%",
+                  height: "90%",
+                  // flex: 1,
+
+                  // paddingBottom: 860,
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #FFFFFF",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                  position: "relative",
+                  marginBottom: -110,
+                }}
+              >
+                {/* <div
             style={{
               display: "flex",
               justifyContent: "flex-end",
@@ -1824,104 +1913,104 @@ export default function AddDiscount() {
               <Text fontWeight="medium">Generate random code</Text>
             </Button>
           </div> */}
-            <span style={{ fontWeight: "500" }}>Discount Value</span>
+                <span style={{ fontWeight: "500" }}>Discount Value</span>
 
-            <div
-              style={{
-                // backgroundColor: "yellow",
-                display: "flex",
-                flexDirection: "row",
-                gap: "8px",
-                justifyContent: "flex-end",
-              }}
-            >
-              <div style={{ width: "70%" }}>
-                <Select
-                  // label={
-                  // }
-                  options={filteredValueTypeOptions}
-                  value={valueType}
-                  onChange={(value) => setValueType(value)}
-                />
-              </div>
-              <div style={{ width: "30%", borderRadius: "20%" }}>
-                <PolarisTextField
-                  suffix={valueType !== "fixed_amount" && "%"}
-                  prefix={
-                    valueType === "fixed_amount" &&
-                    `${currencyCode === "USD" ? "$" : currencyCode}`
-                  }
-                  // prefix="%"
-                  // label="Discount Code"
-                  type="number"
-                  value={value}
-                  onChange={handleChange}
-                  error={valueError ? "Invalid Value" : ""}
-                />
-                {/* {valueError && (
+                <div
+                  style={{
+                    // backgroundColor: "yellow",
+                    display: "flex",
+                    flexDirection: "row",
+                    gap: "8px",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <div style={{ width: "70%" }}>
+                    <Select
+                      // label={
+                      // }
+                      options={filteredValueTypeOptions}
+                      value={valueType}
+                      onChange={(value) => setValueType(value)}
+                    />
+                  </div>
+                  <div style={{ width: "30%", borderRadius: "20%" }}>
+                    <PolarisTextField
+                      suffix={valueType !== "fixed_amount" && "%"}
+                      prefix={
+                        valueType === "fixed_amount" &&
+                        `${currencyCode === "USD" ? "$" : currencyCode}`
+                      }
+                      // prefix="%"
+                      // label="Discount Code"
+                      type="number"
+                      value={value}
+                      onChange={handleChange}
+                      error={valueError ? "Invalid Value" : ""}
+                    />
+                    {/* {valueError && (
                   <div style={{ color: "red" }}>Invalid Value</div>
                 )} */}
-              </div>
-            </div>
+                  </div>
+                </div>
 
-            <div
-              style={{
-                marginTop: 10,
-                marginBottom: 30,
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "flex-start",
-                alignItems: "flex-end",
-                flexWrap: "nowrap",
-                gap: "2%",
-              }}
-            >
-              <div style={{ width: "70%" }}>
-                <Select
-                  label={
-                    <span
-                      style={{
-                        fontWeight: "500",
-                        fontSize: "13px",
-                        color: "#353535",
-                      }}
-                    >
-                      Applies to
-                    </span>
-                  }
-                  options={filteredAppliesToOptions}
-                  value={appliesTo}
-                  onChange={(value) => {
-                    // setCollectionOptions([]);
-                    // setProductOptions([]);
-                    setAppliesTo(value);
-
-                    if (appliesTo === "specific_collection") {
-                      setProductOptions([]);
-                    } else {
-                      setCollectionOptions([]);
-                    }
+                <div
+                  style={{
+                    marginTop: 10,
+                    marginBottom: 30,
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "flex-start",
+                    alignItems: "flex-end",
+                    flexWrap: "nowrap",
+                    gap: "2%",
                   }}
-                />
-              </div>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <FormLayout condensed>
-                <Autocomplete
-                  allowMultiple
-                  options={options}
-                  selected={selectedOptions}
-                  onSelect={updateSelection}
-                  textField={textField}
-                  prefix={<Icon source={SearchMinor} />}
-                />
-                {productIdsError && (
-                  <Text as="p" color="critical">
-                    Select atleast a product
-                  </Text>
-                )}
-              </FormLayout>
-              {/* <PolarisTextField
+                >
+                  <div style={{ width: "70%" }}>
+                    <Select
+                      label={
+                        <span
+                          style={{
+                            fontWeight: "500",
+                            fontSize: "13px",
+                            color: "#353535",
+                          }}
+                        >
+                          Applies to
+                        </span>
+                      }
+                      options={filteredAppliesToOptions}
+                      value={appliesTo}
+                      onChange={(value) => {
+                        // setCollectionOptions([]);
+                        // setProductOptions([]);
+                        setAppliesTo(value);
+
+                        if (appliesTo === "specific_collection") {
+                          setProductOptions([]);
+                        } else {
+                          setCollectionOptions([]);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 15 }}>
+                  <FormLayout condensed>
+                    <Autocomplete
+                      allowMultiple
+                      options={options}
+                      selected={selectedOptions}
+                      onSelect={updateSelection}
+                      textField={textField}
+                      prefix={<Icon source={SearchMinor} />}
+                    />
+                    {productIdsError && (
+                      <Text as="p" color="critical">
+                        Select atleast a product
+                      </Text>
+                    )}
+                  </FormLayout>
+                  {/* <PolarisTextField
               prefix={<Icon source={SearchMinor} />}
               placeholder={`Specific ${
                 appliesTo === "specific_collection" ? "collections" : "products"
@@ -1935,474 +2024,477 @@ export default function AddDiscount() {
               onChange={(value) => setNewDiscountCode(value)}
               error={codeError ? "Discount code is required." : ""}
             /> */}
-            </div>
-            <div style={{ marginBottom: 5, marginTop: 5 }}>
-              <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
-            </div>
-          </div>
-          {/* third card */}
-          <div
-            style={{
-              marginBottom: 5,
-
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "90%",
-              // flex: 1,
-
-              // paddingBottom: 860,
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-              position: "relative",
-              marginTop: 110,
-              marginBottom: -110,
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-              }}
-            >
-              Minimum purchase required
-            </div>
-            <div
-              style={{
-                // display: "flex",
-                // justifyContent: "flex-start",
-                // gap: "10px",
-                width: "100%",
-                marginTop: 10,
-              }}
-            >
-              <ChoiceList
-                // title="Company name"
-                variant="group"
-                choices={[
-                  { label: "No minimum requirements", value: "NMR" },
-                  {
-                    label: "Minimum purhcase amount",
-                    value: "MPA",
-                    renderChildren,
-                  },
-                  {
-                    label: "Minimum quantity of items",
-                    value: "MQI",
-                    renderChildren,
-                  },
-                ]}
-                selected={minRequirementSelected}
-                onChange={handleChangeMinRequirementSelection}
-              />
-            </div>
-          </div>
-          {/* fourth card */}
-          <div
-            style={{
-              marginBottom: 5,
-
-              marginTop: 110,
-              // marginTop: 110,
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-              }}
-            >
-              Customer eligibility
-            </div>
-            <div
-              style={{
-                // display: "flex",
-                // justifyContent: "flex-start",
-                // gap: "10px",
-                width: "100%",
-                marginTop: 10,
-              }}
-            >
-              <ChoiceList
-                // title="Company name"
-                variant="group"
-                choices={[
-                  { label: "All customers", value: "all" },
-                  // { label: "Specific customer segments", value: "SCS" },
-                  { label: "Specific customers", value: "SC" },
-                ]}
-                selected={selected}
-                onChange={handleChangeCustomerSelection}
-              />
-              <div style={{ marginTop: 20 }} />
-              {checkselected === "SC" && (
-                <FormLayout condensed>
-                  <Autocomplete
-                    allowMultiple
-                    options={_options}
-                    selected={_selectedOptions}
-                    onSelect={_updateSelection}
-                    textField={_textField}
-                    prefix={<Icon source={SearchMinor} />}
-                  />
-                  {CustomerIdsError && (
-                    <Text as="p" color="critical">
-                      Select atleast a customer
-                    </Text>
-                  )}
-                </FormLayout>
-              )}
-            </div>
-            <div style={{ marginBottom: 5, marginTop: 15 }}>
-              <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
-            </div>
-          </div>
-          {/* fifth card */}
-          <div
-            style={{
-              marginBottom: 5,
-
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 10,
-              }}
-            >
-              Maximum discount uses
-            </div>
-            <div>
-              <Checkbox
-                label="Limit number of times this discount can be used in total"
-                checked={usageLimitchecked}
-                onChange={handleChangeUsageLimitChecked}
-              />
-              {usageLimitchecked && (
-                <div style={{ marginLeft: 27, width: "20%" }}>
-                  <PolarisTextField
-                    type="number"
-                    label=""
-                    value={usageLimitValue}
-                    onChange={(value) => setUsageLimitValue(value)}
-                    error={
-                      usageLimitCodeError ? "usage limit value required." : ""
-                    }
-                  />
                 </div>
-              )}
-            </div>
-            <div>
-              <Checkbox
-                label="Limit to one user per customer"
-                checked={oneUserPerCustomerchecked}
-                onChange={handleChangeoneUserPerCustomerChecked}
-              />
-            </div>
-          </div>
-          {/* sixth card */}
-          <div
-            style={{
-              marginBottom: 5,
-
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-              }}
-            >
-              Active dates
-            </div>
-            <div
-              style={{
-                display: "flex",
-                // justifyContent: "flex-start",
-                gap: "10px",
-                width: "100%",
-              }}
-            >
-              <div
-                style={{
-                  // backgroundColor: "yellow",
-                  display: "flex",
-                  flexDirection: "row",
-                  // flexGrow: 1,
-                  // justifyContent: "space-between",
-                  width: "100%",
-                  gap: "12px",
-                }}
-              >
-                <div
-                  style={{ flex: 1, width: "50%" }} // Increases width
-                >
-                  <PolarisTextField
-                    label="Select a start date"
-                    type="date"
-                    value={selectedDate}
-                    onChange={(value) => {
-                      setSelectedDate(value);
-                    }}
-                  />
-                  {codeStartDateError && (
-                    <Text as="p" color="critical">
-                      Start Date is required.
-                    </Text>
-                  )}
-                </div>
-
-                <div
-                  style={{ flex: 1, width: "50%" }} // Increases width
-                >
-                  <PolarisTextField
-                    label="Start time"
-                    type="time"
-                    value={startsAtTime}
-                    onChange={(value) => {
-                      setStartsAtTime(value);
-                    }}
-                  />
+                <div style={{ marginBottom: 5, marginTop: 5 }}>
+                  <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
                 </div>
               </div>
-            </div>
-
-            <div style={{ marginTop: 10, marginBottom: 10 }}>
-              <Checkbox
-                label={<span style={{ fontWeight: "500" }}>Set end date</span>}
-                checked={checked}
-                onChange={handleChangeCheckbox}
-              />
-            </div>
-            {checked && (
+              {/* third card */}
               <div
                 style={{
-                  marginTop: 10,
-                  display: "flex",
-                  // justifyContent: "flex-start",
-                  gap: "10px",
+                  // marginBottom: 5,
+
+                  padding: 10,
+                  borderColor: "#FFFFFF",
+                  borderRadius: "10px",
                   width: "100%",
+                  height: "90%",
+                  // flex: 1,
+
+                  // paddingBottom: 860,
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #FFFFFF",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                  position: "relative",
+                  marginTop: 110,
+                  marginBottom: -110,
                 }}
               >
                 <div
                   style={{
-                    // backgroundColor: "yellow",
-                    display: "flex",
-                    flexDirection: "row",
-                    // flexGrow: 1,
-                    // justifyContent: "space-between",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "black",
+                    marginBottom: 5,
+                  }}
+                >
+                  Minimum purchase required
+                </div>
+                <div
+                  style={{
+                    // display: "flex",
+                    // justifyContent: "flex-start",
+                    // gap: "10px",
                     width: "100%",
-                    gap: "12px",
+                    marginTop: 10,
+                  }}
+                >
+                  <ChoiceList
+                    // title="Company name"
+                    variant="group"
+                    choices={[
+                      { label: "No minimum requirements", value: "NMR" },
+                      {
+                        label: "Minimum purhcase amount",
+                        value: "MPA",
+                        renderChildren,
+                      },
+                      {
+                        label: "Minimum quantity of items",
+                        value: "MQI",
+                        renderChildren,
+                      },
+                    ]}
+                    selected={minRequirementSelected}
+                    onChange={handleChangeMinRequirementSelection}
+                  />
+                </div>
+              </div>
+              {/* fourth card */}
+              <div
+                style={{
+                  marginBottom: 5,
+
+                  marginTop: 110,
+                  // marginTop: 110,
+                  padding: 10,
+                  borderColor: "#FFFFFF",
+                  borderRadius: "10px",
+                  width: "100%",
+                  height: "40%",
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #FFFFFF",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "black",
+                    marginBottom: 5,
+                  }}
+                >
+                  Customer eligibility
+                </div>
+                <div
+                  style={{
+                    // display: "flex",
+                    // justifyContent: "flex-start",
+                    // gap: "10px",
+                    width: "100%",
+                    marginTop: 10,
+                  }}
+                >
+                  <ChoiceList
+                    // title="Company name"
+                    variant="group"
+                    choices={[
+                      { label: "All customers", value: "all" },
+                      // { label: "Specific customer segments", value: "SCS" },
+                      { label: "Specific customers", value: "SC" },
+                    ]}
+                    selected={selected}
+                    onChange={handleChangeCustomerSelection}
+                  />
+                  <div style={{ marginTop: 20 }} />
+                  {checkselected === "SC" && (
+                    <FormLayout condensed>
+                      <Autocomplete
+                        allowMultiple
+                        options={_options}
+                        selected={_selectedOptions}
+                        onSelect={_updateSelection}
+                        textField={_textField}
+                        prefix={<Icon source={SearchMinor} />}
+                      />
+                      {CustomerIdsError && (
+                        <Text as="p" color="critical">
+                          Select atleast a customer
+                        </Text>
+                      )}
+                    </FormLayout>
+                  )}
+                </div>
+                <div style={{ marginBottom: 5, marginTop: 15 }}>
+                  <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
+                </div>
+              </div>
+              {/* fifth card */}
+              <div
+                style={{
+                  marginBottom: 5,
+
+                  padding: 10,
+                  borderColor: "#FFFFFF",
+                  borderRadius: "10px",
+                  width: "100%",
+                  height: "40%",
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #FFFFFF",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "black",
+                    marginBottom: 10,
+                  }}
+                >
+                  Maximum discount uses
+                </div>
+                <div>
+                  <Checkbox
+                    label="Limit number of times this discount can be used in total"
+                    checked={usageLimitchecked}
+                    onChange={handleChangeUsageLimitChecked}
+                  />
+                  {usageLimitchecked && (
+                    <div style={{ marginLeft: 27, width: "20%" }}>
+                      <PolarisTextField
+                        type="number"
+                        label=""
+                        value={usageLimitValue}
+                        onChange={(value) => setUsageLimitValue(value)}
+                        error={
+                          usageLimitCodeError ? "usage limit value required." : ""
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Checkbox
+                    label="Limit to one user per customer"
+                    checked={oneUserPerCustomerchecked}
+                    onChange={handleChangeoneUserPerCustomerChecked}
+                  />
+                </div>
+              </div>
+              {/* sixth card */}
+              <div
+                style={{
+                  marginBottom: 5,
+
+                  padding: 10,
+                  borderColor: "#FFFFFF",
+                  borderRadius: "10px",
+                  width: "100%",
+                  height: "40%",
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #FFFFFF",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "black",
+                    marginBottom: 5,
+                  }}
+                >
+                  Active dates
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    // justifyContent: "flex-start",
+                    gap: "10px",
+                    width: "100%",
                   }}
                 >
                   <div
-                    style={{ flex: 1, width: "50%" }} // Increases width
+                    style={{
+                      // backgroundColor: "yellow",
+                      display: "flex",
+                      flexDirection: "row",
+                      // flexGrow: 1,
+                      // justifyContent: "space-between",
+                      width: "100%",
+                      gap: "12px",
+                    }}
                   >
-                    <PolarisTextField
-                      label="Select an end date"
-                      type="date"
-                      value={selectedDateEnd}
-                      onChange={(value) => {
-                        setSelectedDateEnd(value);
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{ flex: 1, width: "50%" }} // Increases width
-                  >
-                    <PolarisTextField
-                      label="End time"
-                      type="time"
-                      value={endAtTime}
-                      onChange={(value) => {
-                        setEndAtTime(value);
-                      }}
-                    // error={codeStartDateError ? "Start Date is required." : ""}
-                    />
+                    <div
+                      style={{ flex: 1, width: "50%" }} // Increases width
+                    >
+                      <PolarisTextField
+                        label="Select a start date"
+                        type="date"
+                        value={selectedDate}
+                        onChange={(value) => {
+                          setSelectedDate(value);
+                        }}
+                      />
+                      {codeStartDateError && (
+                        <Text as="p" color="critical">
+                          Start Date is required.
+                        </Text>
+                      )}
+                    </div>
+
+                    <div
+                      style={{ flex: 1, width: "50%" }} // Increases width
+                    >
+                      <PolarisTextField
+                        label="Start time"
+                        type="time"
+                        value={startsAtTime}
+                        onChange={(value) => {
+                          setStartsAtTime(value);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-        {/* summary card */}
-        <div
-          style={{
-            width: "30%",
-            height: "40%",
-            // flex: 1,
-            padding: 10,
-            borderColor: "#FFFFFF",
-            borderRadius: "10px",
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #FFFFFF",
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            // position: "fixed",
-            // alignContent: "flex-end",
-            // alignSelf: "self-end", // Ensure it stays at the top
-          }}
-        >
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Summary
-          </span>
 
+                <div style={{ marginTop: 10, marginBottom: 10 }}>
+                  <Checkbox
+                    label={<span style={{ fontWeight: "500" }}>Set end date</span>}
+                    checked={checked}
+                    onChange={handleChangeCheckbox}
+                  />
+                </div>
+                {checked && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      display: "flex",
+                      // justifyContent: "flex-start",
+                      gap: "10px",
+                      width: "100%",
+                    }}
+                  >
+                    <div
+                      style={{
+                        // backgroundColor: "yellow",
+                        display: "flex",
+                        flexDirection: "row",
+                        // flexGrow: 1,
+                        // justifyContent: "space-between",
+                        width: "100%",
+                        gap: "12px",
+                      }}
+                    >
+                      <div
+                        style={{ flex: 1, width: "50%" }} // Increases width
+                      >
+                        <PolarisTextField
+                          label="Select an end date"
+                          type="date"
+                          value={selectedDateEnd}
+                          onChange={(value) => {
+                            setSelectedDateEnd(value);
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{ flex: 1, width: "50%" }} // Increases width
+                      >
+                        <PolarisTextField
+                          label="End time"
+                          type="time"
+                          value={endAtTime}
+                          onChange={(value) => {
+                            setEndAtTime(value);
+                          }}
+                        // error={codeStartDateError ? "Start Date is required." : ""}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* summary card */}
+            <div
+              style={{
+                width: "30%",
+                height: "40%",
+                // flex: 1,
+                padding: 10,
+                borderColor: "#FFFFFF",
+                borderRadius: "10px",
+                backgroundColor: "#FFFFFF",
+                border: "1px solid #FFFFFF",
+                boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                // position: "fixed",
+                // alignContent: "flex-end",
+                // alignSelf: "self-end", // Ensure it stays at the top
+              }}
+            >
+              <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
+                Summary
+              </span>
+
+              <div
+                style={{
+                  marginTop: 10,
+                  marginBottom: 20,
+                  fontSize: "12px",
+                  color: "gray",
+                  fontWeight: "500",
+                }}
+              >
+                {newDiscountCode ? newDiscountCode : "No discount code yet"}
+              </div>
+              <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
+                Type and method
+              </span>
+              <div style={defaultListStyle}>
+                <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
+                  {items.map((item, index) => (
+                    <li
+                      key={index}
+                      style={{ display: "flex", alignItems: "center" }}
+                    >
+                      <span style={bulletStyle}>•</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                {/* <button onClick={() => addItem("New Point")}>Add Point</button> */}
+              </div>
+              <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
+                Details
+              </span>
+              <div style={defaultListStyle}>
+                <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
+                  {items_two.map((item, index) => (
+                    <li
+                      key={index}
+                      style={{ display: "flex", alignItems: "center" }}
+                    >
+                      <span style={bulletStyle}>•</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                {/* <button onClick={() => addItem_two("New Point")}>Add Point</button> */}
+              </div>
+              <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
+                Performance
+              </span>
+              <div
+                style={{
+                  marginTop: 10,
+                  marginBottom: 10,
+                  fontSize: "12px",
+                  color: "gray",
+                  fontWeight: "500",
+                }}
+              >
+                Discount is not active yet
+              </div>
+            </div>
+          </div>
           <div
             style={{
-              marginTop: 10,
-              marginBottom: 20,
-              fontSize: "12px",
-              color: "gray",
-              fontWeight: "500",
+              marginTop: 15,
+              marginBottom: 15,
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "10px",
             }}
           >
-            {newDiscountCode ? newDiscountCode : "No discount code yet"}
+            {!modalLoader && (
+              <button
+                // loading={modalLoader}
+                onClick={() => navigate("/")}
+                primary
+                style={{
+                  // borderColor: "transparent",
+                  backgroundColor: "white",
+                  color: "black",
+                  borderRadius: "8px", // Adjust the radius as needed
+                  height: "26px", // Adjust the height as needed
+                  padding: "0 14px", // Adjust padding as needed
+                  fontWeight: "bold", // Optional, for text styling
+                  fontSize: "12px",
+                  borderColor: "#FFFFFF",
+                  cursor: "default", // Default cursor
+                  border: "1px solid #FFFFFF",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect          }}
+                }}
+              >
+                Discard
+              </button>
+            )}
+            <button
+              // loading={modalLoader}
+              onClick={() =>
+                isAutomatic ? createDiscount() : handleCreateDiscount(id?.current && !(isLoading) && options ? id?.current : null)
+              }
+              primary
+              style={{
+                backgroundColor: "black",
+                color: "white",
+                borderRadius: "8px", // Adjust the radius as needed
+                height: "26px", // Adjust the height as needed
+                padding: "0 14px", // Adjust padding as needed
+                fontWeight: "bold", // Optional, for text styling
+                fontSize: "12px",
+                cursor: "default", // Default cursor
+              }}
+            >
+              {modalLoader ? (
+                <img
+                  src={spinner}
+                  alt="Loading..."
+                  style={{ width: "20px", height: "20px" }}
+                />
+              ) : (
+                id?.current && !(isLoading) && options ? "Save" : "Create Discount"
+              )}
+            </button>
           </div>
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Type and method
-          </span>
-          <div style={defaultListStyle}>
-            <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
-              {items.map((item, index) => (
-                <li
-                  key={index}
-                  style={{ display: "flex", alignItems: "center" }}
-                >
-                  <span style={bulletStyle}>•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {/* <button onClick={() => addItem("New Point")}>Add Point</button> */}
-          </div>
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Details
-          </span>
-          <div style={defaultListStyle}>
-            <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
-              {items_two.map((item, index) => (
-                <li
-                  key={index}
-                  style={{ display: "flex", alignItems: "center" }}
-                >
-                  <span style={bulletStyle}>•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {/* <button onClick={() => addItem_two("New Point")}>Add Point</button> */}
-          </div>
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Performance
-          </span>
-          <div
-            style={{
-              marginTop: 10,
-              marginBottom: 10,
-              fontSize: "12px",
-              color: "gray",
-              fontWeight: "500",
-            }}
-          >
-            Discount is not active yet
-          </div>
-        </div>
-      </div>
-      <div
-        style={{
-          marginTop: 15,
-          marginBottom: 15,
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "10px",
-        }}
-      >
-        {!modalLoader && (
-          <button
-            // loading={modalLoader}
-            onClick={() => navigate("/")}
-            primary
-            style={{
-              // borderColor: "transparent",
-              backgroundColor: "white",
-              color: "black",
-              borderRadius: "8px", // Adjust the radius as needed
-              height: "26px", // Adjust the height as needed
-              padding: "0 14px", // Adjust padding as needed
-              fontWeight: "bold", // Optional, for text styling
-              fontSize: "12px",
-              borderColor: "#FFFFFF",
-              cursor: "default", // Default cursor
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect          }}
-            }}
-          >
-            Discard
-          </button>
-        )}
-        <button
-          // loading={modalLoader}
-          onClick={() =>
-            isAutomatic ? createDiscount() : handleCreateDiscount(id?.current && !(isLoading) && options ? id?.current : null)
-          }
-          primary
-          style={{
-            backgroundColor: "black",
-            color: "white",
-            borderRadius: "8px", // Adjust the radius as needed
-            height: "26px", // Adjust the height as needed
-            padding: "0 14px", // Adjust padding as needed
-            fontWeight: "bold", // Optional, for text styling
-            fontSize: "12px",
-            cursor: "default", // Default cursor
-          }}
-        >
-          {modalLoader ? (
-            <img
-              src={spinner}
-              alt="Loading..."
-              style={{ width: "20px", height: "20px" }}
-            />
-          ) : (
-            id?.current && !(isLoading) && options ? "Save" : "Create Discount"
-          )}
-        </button>
-      </div>
+        </>
+      )}
+
     </Page>
   );
 }

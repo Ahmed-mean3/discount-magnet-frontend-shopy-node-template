@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   Page,
   LegacyStack,
@@ -29,6 +35,12 @@ import {
   Checkbox,
   Spinner,
   LegacyCard,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Layout,
+  AppProvider,
+  Frame,
 } from "@shopify/polaris";
 import { useAppQuery, useAuthenticatedFetch } from "../hooks";
 import {
@@ -38,7 +50,7 @@ import {
 } from "@shopify/polaris-icons";
 import spinner from "../assets/spin.gif";
 import axios from "axios";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import DatePickerMain from "../components/DatePicker";
 import { check } from "prettier";
 import { createApp } from "@shopify/app-bridge";
@@ -49,7 +61,9 @@ import DiscountCombinationUI from "../components/DiscountCombinationUI";
 
 export default function AddDiscountBuyXGetYFree() {
   const navigate = useNavigate();
-  const [filterValue, setFilterValue] = useState("");
+  const location = useLocation();
+  const id = useRef(location?.state?.id || null);
+  const [isGetDiscount, setIsGetDiscount] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAutomatic, setIsAutomatic] = useState(false);
   const [newDiscountTitle, setNewDiscountTitle] = useState("");
@@ -74,6 +88,7 @@ export default function AddDiscountBuyXGetYFree() {
   const [countriesIds, setCountriesIds] = useState([]);
   const [value, setValue] = useState("");
   const [preReqQuantity, setPreReqQuantity] = useState("");
+  const [spendAmount, setSpendAmount] = useState();
   const [entitledQuantity, setEntitledQuantity] = useState("");
   const [shippingDiscountValue, setShippingDiscountValue] = useState("");
   const [shippingError, setShippingError] = useState(false);
@@ -135,6 +150,7 @@ export default function AddDiscountBuyXGetYFree() {
     useState(false);
   const [checkselected, setCheckSelected] = useState("all");
   const [checkCustomerSelected, setCheckCustomerSelected] = useState("all");
+  const [active, setActive] = useState(false);
   const AppliesToOptions = [
     { label: "Specific Collection", value: "specific_collection" },
     { label: "Specific Product", value: "specific_product" },
@@ -150,64 +166,12 @@ export default function AddDiscountBuyXGetYFree() {
     (value) => setTextFieldValue(value),
     []
   );
+  const toggleActive = useCallback(() => setActive((active) => !active), []);
 
-  useEffect(() => {
-    if (discountedValueCheck === "percentage") {
-      setMinAmountOffReq(0);
-    } else if (discountedValueCheck === "fixed_amount") {
-      setMinPercentOffReq(0);
-    } else if (discountedValueCheck === "free") {
-      setMinPercentOffReq(0);
-      setMinAmountOffReq(0);
-    }
-  }, [discountedValueCheck, minPercentOffReq, minAmountOffReq]);
-  const renderChildren = useCallback(
-    (selected) =>
-      selected &&
-        (discountedValueCheck === "percentage" ||
-          discountedValueCheck === "fixed_amount") ? (
-        <div style={{ width: "20%" }}>
-          <PolarisTextField
-            prefix={discountedValueCheck === "percentage" ? "" : "$"}
-            suffix={discountedValueCheck === "fixed_amount" ? "" : "%"}
-            type="number"
-            label=""
-            value={
-              discountedValueCheck === "percentage"
-                ? minPercentOffReq
-                : minAmountOffReq
-            }
-            onChange={(value) => {
-              const parsedValue = parseInt(value, 10); // Parse value to integer
+  const toastMarkup = active ? (
+    <Toast content="Something went wrong, creating discount" onDismiss={toggleActive} />
+  ) : null;
 
-              // Prevent negative values
-              if (parsedValue > 0 || value === "") {
-                discountedValueCheck === "percentage" && parsedValue < 101
-                  ? setMinPercentOffReq(value)
-                  : discountedValueCheck === "fixed_amount"
-                    ? setMinAmountOffReq(value)
-                    : null;
-              }
-            }}
-            error={
-              discountedValueCheck === "percentage" && _minPercentOffReqError
-                ? "Minimum Percentage value required."
-                : discountedValueCheck === "fixed_amount" &&
-                  minAmountOffReqError
-                  ? "Minimum amount off value is required"
-                  : ""
-            }
-          />
-        </div>
-      ) : null,
-    [
-      minPercentOffReq,
-      minAmountOffReq,
-      discountedValueCheck,
-      minPercentOffReqError,
-      minAmountOffReqError,
-    ]
-  );
   const handleChangeCountriesSelection = useCallback((value) => {
     {
       const [_selected] = value;
@@ -222,6 +186,8 @@ export default function AddDiscountBuyXGetYFree() {
       setCustomerSelected(value);
     }
   }, []);
+
+
   const handleChangePurhcaseTypeSelection = useCallback((value) => {
     {
       setPurchaseTypeSelected(value);
@@ -230,6 +196,8 @@ export default function AddDiscountBuyXGetYFree() {
   const handleChangeDiscountedValue = useCallback((value) => {
     {
       const [_selected] = value;
+      // console.log('dididid', _selected)
+      // setValueType(_selected === "free" ? "percentage" : _selected);
       setDiscountedValueCheck(_selected);
       setDiscountedValue(value);
     }
@@ -331,15 +299,15 @@ export default function AddDiscountBuyXGetYFree() {
 
   //get products or collection side effect.
   useEffect(() => {
-    console.log('inining')
-    if (_options.length > 0) {
+    console.log("inining");
+    if (_options.length > 0 && !id.current) {
       setSelectedTags([]);
       // set_SelectedTags_([])
       set_Options([]);
       // set_SelectedOptions_([]);
       // setSelectedOptions([])
       set_SelectedTags([]);
-      set_SelectedOptions([])
+      set_SelectedOptions([]);
       // _selectedTags, _selectedOptions
     }
     const updatedOptions =
@@ -358,16 +326,14 @@ export default function AddDiscountBuyXGetYFree() {
 
   //buy products or collection side effect.
   useEffect(() => {
-
-
-    if (_options_.length > 0) {
+    if (_options_.length > 0 && !id.current) {
       setSelectedTags([]);
       // set_SelectedTags_([])
       set_Options_([]);
       // set_SelectedOptions_([]);
       // setSelectedOptions([])
       set_SelectedTags_([]);
-      set_SelectedOptions_([])
+      set_SelectedOptions_([]);
       // _selectedTags, _selectedOptions
     }
 
@@ -586,7 +552,7 @@ export default function AddDiscountBuyXGetYFree() {
   );
   const _updateSelection_ = useCallback(
     (selected) => {
-      console.log("hilal ki dingdong bubble", selected);
+      // console.log("hilal ki dingdong bubble", selected);
       // return;
       if (_prodIds.length > 0) {
         setProductIdsError_(false);
@@ -733,27 +699,6 @@ export default function AddDiscountBuyXGetYFree() {
       console.error("Error fetching price rule", error.response.data);
     }
   };
-
-  useEffect(() => {
-    // handleFetchCountries();
-    handleFetchCustomers();
-    handleFetchPopulate();
-  }, []);
-  useEffect(() => {
-    if (_appliesTo === "specific_product") {
-      handleFetchPopulate();
-    } else {
-      handleFetchCollectionPopulate();
-    }
-  }, [_appliesTo]);
-  useEffect(() => {
-    if (appliesTo === "specific_product") {
-      handleFetchPopulate(false);
-    } else {
-      handleFetchCollectionPopulate(false);
-    }
-  }, [appliesTo]);
-
   function extractDate(dateString) {
     // console.log(dateString, "check date string?");
     // return;
@@ -765,6 +710,8 @@ export default function AddDiscountBuyXGetYFree() {
 
     return extractedDate;
   }
+
+  console.log('djdjdjdj', valueType)
   const createDiscount = async () => {
     const productIds = ["9526024536366", "9526024306990"]; // Example product ID
     const discountTitle = "Automatic Discount from graphql 20%";
@@ -813,7 +760,7 @@ export default function AddDiscountBuyXGetYFree() {
     )}`;
   }
 
-  const handleCreateDiscount = async () => {
+  const handleCreateDiscount = async (discountId) => {
     let isValid = false;
     try {
       setModalLoader(true);
@@ -987,15 +934,15 @@ export default function AddDiscountBuyXGetYFree() {
         isValid = true;
       }
 
-      if (!preReqQuantity || preReqQuantity < 1) {
-        setPreReqQuantityValueError(true);
-        isValid = false;
-        // setModalLoader(false);
-        // return;
-      } else {
-        setPreReqQuantityValueError(false);
-        isValid = true;
-      }
+      // if (!spendAmount || (!preReqQuantity || preReqQuantity < 1)) {
+      //   setPreReqQuantityValueError(true);
+      //   isValid = false;
+      //   // setModalLoader(false);
+      //   // return;
+      // } else {
+      //   setPreReqQuantityValueError(false);
+      //   isValid = true;
+      // }
 
       if (!entitledQuantity || entitledQuantity < 1) {
         setEntitledQuantityValueError(true);
@@ -1014,10 +961,7 @@ export default function AddDiscountBuyXGetYFree() {
         price_rule: {
           title: newDiscountCode,
           value_type:
-            discountedValueCheck === "free" ||
-              discountedValueCheck !== "fixed_amount"
-              ? "percentage"
-              : "fixed_amount", // fixed_amount  OR percentage
+            discountedValueCheck === "free" ? "percentage" : "fixed_amount", // fixed_amount  OR percentage
           value:
             discountedValueCheck === "fixed_amount"
               ? `-${minAmountOffReq}.0`
@@ -1049,49 +993,64 @@ export default function AddDiscountBuyXGetYFree() {
             }
             : { prerequisite_product_ids: _prodIds }),
 
-          //get products for free or some amount or some percentage off
           ...(appliesTo === "specific_collection"
-            ? { entitled_collection_ids: prodIds }
-            : {
-              entitled_product_ids: prodIds,
-            }),
-          // entitled_product_ids: [prodIds],
+            ? {
+              //work remain on collection fetch it first
+              entitled_collection_ids: prodIds,
+            }
+            : { entitled_product_ids: prodIds }),
+
+
+          ...(valueType[0] === "MPA" &&
+          {
+            prerequisite_to_entitlement_quantity_ratio: {
+              prerequisite_quantity: spendAmount ? null : preReqQuantity,
+              entitled_quantity: entitledQuantity,
+            },
+          }),
 
           //define number of products needs to buy or get from above spcified collection or products
-          prerequisite_to_entitlement_quantity_ratio: {
-            prerequisite_quantity: preReqQuantity,
-            entitled_quantity: entitledQuantity,
-          },
 
-          // Make sure entitled_product_ids is an array
-          ...(purchaseTypeSelected &&
-            purchaseTypeSelected !== "otp" && {
-            entitled_product_ids:
-              purchaseTypeSelected === "sub"
-                ? subscriptionProducts
-                : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
-          }),
+
+          // // Make sure entitled_product_ids is an array
+          // ...(purchaseTypeSelected &&
+          //   purchaseTypeSelected !== "otp" && {
+          //   entitled_product_ids:
+          //     purchaseTypeSelected === "sub"
+          //       ? subscriptionProducts
+          //       : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
+          // }),
+
+
 
           // Conditionally add prerequisite if discountedValueCheck is "MPA"
-          ...(discountedValueCheck === "MPA" &&
-            minPercentOffReq && {
-            prerequisite_subtotal_range: {
-              greater_than_or_equal_to: minPercentOffReq,
-            },
-          }),
+
 
           // Conditionally add prerequisite if discountedValueCheck is "MQI"
-          ...(discountedValueCheck === "MQI" &&
-            minAmountOffReq && {
-            prerequisite_to_entitlement_quantity_ratio: {
-              prerequisite_quantity: minAmountOffReq,
-              entitledQuantity: 1,
-            },
-            prerequisite_product_ids: prodIds, // Only add when MQI is selected
+          // ...(valueType[0] === "MQI" &&
+          // {
+          // prerequisite_to_entitlement_quantity_ratio: {
+          //   prerequisite_quantity: spendAmount ? null : preReqQuantity,
+          //   entitled_quantity: parseInt(entitledQuantity),
+          // },
+
+          // ...(valueType[0] === "MPA" &&
+          //   spendAmount && {
+          //   prerequisite_to_entitlement_purchase: `${spendAmount}.00`
+          // }),
+
+          ...(valueType[0] === "MPA" &&
+            spendAmount && {
+            prerequisite_to_entitlement_purchase: { prerequisite_amount: parseInt(`${spendAmount}`) }
           }),
+          // prerequisite_product_ids: prodIds, // Only add when MQI is selected
+          // }
+
+          // ),
           // Add prerequisite_customer_ids if applicable
-          ...(checkCustomerSelected === "SC" ||
-            (checkCustomerSelected === "SCS" && customerIds.length > 0)
+          ...((checkCustomerSelected === "SC" ||
+            checkCustomerSelected === "SCS") &&
+            customerIds.length > 0
             ? { prerequisite_customer_ids: customerIds }
             : {}),
 
@@ -1104,23 +1063,33 @@ export default function AddDiscountBuyXGetYFree() {
             },
           }),
 
-          usage_limit: usageLimitValue,
+          usage_limit: usageLimitValue ?? null,
           once_per_customer: !!oneUserPerCustomerchecked,
-          combinesWithProductDiscounts: isProductDiscount,
-          combinesWithOrderDiscounts: isOrderDiscount,
+          // combinesWithProductDiscounts: isProductDiscount,
+          // combinesWithOrderDiscounts: isOrderDiscount,
         },
         discount_code: newDiscountCode,
         discount_type: "product",
       };
 
-      console.log("payloardCheckup...", newDiscount);
-
+      console.log("payloardCheckup...", newDiscount, prodIds);
+      // return;
       // console.log("dynamic->>>>>>", targetSelection);
 
       // return;
       //  console.log('hardcode->>>>>>',_newDiscount)
-      const response = await fetch("/api/add-discount-code", {
-        method: "POST",
+
+
+      if (!isValid) {
+        setModalLoader(false);
+        return;
+      }
+      const url = discountId
+        ? `/api/update-price_rule/${discountId}`
+        : "/api/add-discount-code";
+
+      const response = await fetch(url, {
+        method: discountId ? "PUT" : "POST",
         body: JSON.stringify(newDiscount),
         headers: {
           "Content-Type": "application/json",
@@ -1154,14 +1123,18 @@ export default function AddDiscountBuyXGetYFree() {
         .catch((error) => {
           // setIsLoading(false);
           console.log("Fetched collections There was an error:", error);
-          return error;
+          return false;
         });
-      console.log("response", response);
-      // return;
-      // const updatedDiscounts = [...discounts, newDiscount];
-      // setDiscounts(updatedDiscounts);
+      console.log("saa2", response);
 
-      // localStorage.setItem("discounts", JSON.stringify(updatedDiscounts));
+
+
+      if (!response) {
+        isValid = false
+        setModalLoader(false);
+        toggleActive()
+        return;
+      }
 
       setNewDiscountTitle("");
       setNewDiscountAmount("");
@@ -1281,6 +1254,158 @@ export default function AddDiscountBuyXGetYFree() {
       navigate("/", { state: data });
     }
   };
+
+  console.log("setDiscountedValueCheck", discountedValueCheck);
+  const handleGetDiscount = async (_id) => {
+    try {
+      // setIsGetDiscount(true);
+      if (!_id) return;
+      // setDeleteLoader(true);
+      // console.log("fetching single one", _id);
+      await fetch(`api/get-price_rule/${_id}`, {
+        method: "GET",
+      })
+        .then((res) => {
+          if (res.ok) {
+            return res.json();
+          } else {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+        })
+        .then((data) => {
+          // return;
+          // console.log('single one fetched', data);
+          setNewDiscountCode(data.data.title);
+          if (data?.data?.value_type === "fixed_amount") {
+            // console.log('single one fetched', data.data.value);
+            setDiscountedValue(["fixed_amount"]);
+            setDiscountedValueCheck("fixed_amount");
+            setMinAmountOffReq(Math.abs(Number(data.data.value)));
+            // setValueType("MPA");
+          } else {
+            setDiscountedValue(["percentage"]);
+            setDiscountedValueCheck("percentage");
+            setMinPercentOffReq(Math.abs(Number(data.data.value)));
+            // setValueType(data.data.value_type);
+            // setValueType("MQI");
+
+          }
+          // setValueType(data.data.value_type);
+
+          // setMinAmountOffReq(data.data.value);
+          setValue(Math.abs(Number(data.data.value)));
+          //buying ones
+          set_AppliesTo(
+            data.data.prerequisite_collection_ids.length > 0
+              ? "specific_collection"
+              : "specific_product"
+          );
+          _updateSelection_(
+            data?.data?.prerequisite_collection_ids.length > 0
+              ? data?.data?.prerequisite_collection_ids
+              : data?.data?.prerequisite_product_ids
+          );
+          //getting ones
+          setAppliesTo(
+            data?.data?.entitled_collection_ids.length > 0
+              ? "specific_collection"
+              : "specific_product"
+          );
+          _updateSelection(
+            data?.data?.entitled_collection_ids.length > 0
+              ? data?.data?.entitled_collection_ids
+              : data?.data?.entitled_product_ids
+          );
+          setPreReqQuantity(
+            data.data.prerequisite_to_entitlement_quantity_ratio
+              .prerequisite_quantity
+          );
+          setEntitledQuantity(
+            data.data.prerequisite_to_entitlement_quantity_ratio
+              .entitled_quantity
+          );
+          // setCheckCustomerSelected(data?.data?.customer_selection === "prerequisite" ? "SC" : "all");
+          setAllocationMethod(
+            data?.data?.allocation_method === "each" ? "MPA" : "NMR"
+          );
+          if (data?.data?.prerequisite_customer_ids?.length > 0) {
+            setCheckCustomerSelected("SC");
+            setCustomerSelected(["SC"]);
+            updateSelection(data?.data?.prerequisite_customer_ids);
+          }
+
+          if (data?.data?.entitled_product_ids?.length > 0) {
+            setPurchaseTypeSelected("sub");
+          }
+
+          if (
+            data?.data?.prerequisite_subtotal_range?.greater_than_or_equal_to
+          ) {
+            setValueType("MPA");
+            // setMinPercentOffReq(data.data.prerequisite_subtotal_range.greater_than_or_equal_to);
+          }
+
+          if (
+            data?.data?.prerequisite_to_entitlement_quantity_ratio
+              ?.prerequisite_quantity
+          ) {
+            setValueType("MQI");
+            // setMinAmountOffReq(data.data.prerequisite_to_entitlement_quantity_ratio.prerequisite_quantity);
+          }
+
+          if (data?.data?.usage_limit) {
+            setUsageLimitchecked(true);
+            setUsageLimitValue(data.data.usage_limit);
+          }
+          setOneUserPerCustomerchecked(data?.data?.once_per_customer);
+
+          if (data?.data?.hasExcludeShippingRatesOver?.value) {
+            setExcludeShippingRates(true);
+            setExcludeShippingRatesValue(
+              data?.data?.hasExcludeShippingRatesOver?.value
+            );
+          }
+          // if (data?.data?.prerequisite_subtotal_range?.greater_than_or_equal_to) {
+          //   setMinRequirementCheckSelected("MPA");
+          //   setMinRequirementSelected("MPA");
+          //   setMinPurchaseReq(data.data.prerequisite_subtotal_range.greater_than_or_equal_to);
+          // }
+
+          // if (data?.data?.prerequisite_to_entitlement_quantity_ratio?.prerequisite_quantity) {
+          //   setMinRequirementCheckSelected("MQI");
+          //   setMinRequirementSelected("MQI");
+          //   setMinQuantityReq(data.data.prerequisite_to_entitlement_quantity_ratio.prerequisite_quantity)
+          // }
+          setSelectedDate(data?.data?.starts_at.split("T")[0]);
+          const starts = data?.data?.starts_at.split("T")[1];
+          setStartsAtTime(starts.split(":00")[0]);
+          if (data?.data?.ends_at) {
+            setChecked(true);
+            setSelectedDateEnd(data?.data?.ends_at.split("T")[0]);
+            const starts = data?.data?.ends_at.split("T")[1];
+            setEndAtTime(starts.split(":00")[0]);
+          }
+
+          //customer filling work
+          setIsGetDiscount(false);
+
+        })
+        .catch((error) => {
+          console.log("single one fetched error", error);
+          setIsGetDiscount(false);
+
+          // setDeleteLoader(false);
+          // setOptionsModal(false);
+          // setConfirmDelete(false);
+          // console.log("Fetched collections There was an error:", error);
+        });
+    } catch (error) {
+      setIsGetDiscount(false);
+
+      console.log("There was an error getting single discount:", error);
+    }
+  };
+
   // console.log(
   //   "checkout",
   //   discountedValueCheck === "percentage" && _minPercentOffReqError
@@ -1419,6 +1544,56 @@ export default function AddDiscountBuyXGetYFree() {
       .join("");
   }
 
+  const renderChildren = useCallback(
+    (selected) =>
+      selected &&
+        (discountedValueCheck === "percentage" ||
+          discountedValueCheck === "fixed_amount") ? (
+        <div style={{ width: "20%" }}>
+          <PolarisTextField
+            prefix={discountedValueCheck === "percentage" ? "" : "$"}
+            suffix={discountedValueCheck === "fixed_amount" ? "" : "%"}
+            type="number"
+            label=""
+            value={
+              discountedValueCheck === "percentage"
+                ? minPercentOffReq
+                : minAmountOffReq
+            }
+            onChange={(value) => {
+              const parsedValue = parseInt(value, 10); // Parse value to integer
+
+              // Prevent negative values
+              if (parsedValue > 0 || value === "") {
+                discountedValueCheck === "percentage" && parsedValue < 101
+                  ? setMinPercentOffReq(value)
+                  : discountedValueCheck === "fixed_amount"
+                    ? setMinAmountOffReq(value)
+                    : null;
+              }
+            }}
+            error={
+              discountedValueCheck === "percentage" && _minPercentOffReqError
+                ? "Minimum Percentage value required."
+                : discountedValueCheck === "fixed_amount" &&
+                  minAmountOffReqError
+                  ? "Minimum amount off value is required"
+                  : ""
+            }
+          />
+        </div>
+      ) : null,
+    [
+      _options,
+      _options_,
+      minPercentOffReq,
+      minAmountOffReq,
+      discountedValueCheck,
+      minPercentOffReqError,
+      minAmountOffReqError,
+    ]
+  );
+
   const textField = (
     <Autocomplete.TextField
       onChange={updateText}
@@ -1524,6 +1699,8 @@ export default function AddDiscountBuyXGetYFree() {
     },
     [_options_, _selectedTags_, _selectedOptions, _prodIds]
   );
+
+  // console.log('removableee.', prodIds)
   const _removeTag = useCallback(
     (tag) => () => {
       // console.log("matched option->>>>>>", _options, tag);
@@ -1685,7 +1862,12 @@ export default function AddDiscountBuyXGetYFree() {
     const negValue = -Math.abs(Number(validValue));
 
     console.log("hitem", negValue);
-    setPreReqQuantity(validValue);
+    if (valueType[0] === "MPA") {
+      setSpendAmount(validValue)
+    }
+    else {
+      setPreReqQuantity(validValue);
+    }
   };
 
   const handleChangeEntitledQuantity = (event) => {
@@ -1707,686 +1889,866 @@ export default function AddDiscountBuyXGetYFree() {
     return `${adjustedHours}:${minutes} ${period}`;
   }
 
+
+
+  useEffect(() => {
+    if (_appliesTo === "specific_product") {
+      handleFetchPopulate();
+    } else {
+      handleFetchCollectionPopulate();
+    }
+  }, [_appliesTo]);
+  useEffect(() => {
+    if (appliesTo === "specific_product") {
+      handleFetchPopulate(false);
+    } else {
+      handleFetchCollectionPopulate(false);
+    }
+  }, [appliesTo]);
+
+
+  // useEffect(() => {
+  //   if (isGetDiscount) {
+  //     setIsGetDiscount(false);
+  //   }
+  //   else {
+  //     setIsGetDiscount(true);
+  //   }
+  // }, [isGetDiscount])
+  useEffect(() => {
+    if (id?.current && !isGetDiscount && _options_.length === 0 &&
+      _options.length === 0) {
+      setIsGetDiscount(true);
+    }
+    if (
+      id?.current &&
+      !isLoading &&
+      _options_.length > 0 &&
+      _options.length > 0
+    ) {
+      handleGetDiscount(id?.current);
+    }
+
+  }, [_options, _options_]);
+
+
+  useEffect(() => {
+    // handleFetchCountries();
+
+
+    handleFetchCustomers();
+    handleFetchPopulate();
+  }, []);
   return (
     <Page
       backAction={{ content: "Settings", url: "/" }}
-      title="Create product discount"
+      title={`${id?.current ? "Edit" : "Create"} product discount`}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          width: "100%",
-          gap: "20px",
-        }}
-      >
-        {/* main */}
-        <div
-          style={{
-            width: "70%",
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
-          }}
-        >
-          {/* first card */}
-          <DiscountCodeUI
-            handleRandomCodeGenerate={handleRandomCodeGenerate}
-            newDiscountCode={newDiscountCode}
-            setNewDiscountCode={setNewDiscountCode}
-            codeError={codeError}
-            topLeftBannerName="Buy X get Y"
-            topRightBannerName="product discount"
-          />
-          {/* second card */}
-          <div
-            style={{
-              marginBottom: 5,
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "90%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-              position: "relative",
-              marginBottom: -110,
-            }}
-          >
-            {/* Customer Buys Container */}
-            <div style={{ fontWeight: "500" }}>Customer buys</div>
-            <div style={{ fontWeight: "500", marginTop: 10 }}>
-              Purchase type
-            </div>
-            <div
-              style={{
-                fontWeight: "500",
-                marginBottom: 10,
-                fontSize: "13px",
-                color: "gray",
-              }}
-            >
-              Buy X get Y discounts are only supported with one-time purchases.
-            </div>
-            <ChoiceList
-              // title="Company name"
-              variant="group"
-              choices={filteredValueTypeOptions}
-              selected={valueType}
-              onChange={(value) => setValueType(value)}
-            />
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "flex-start",
-                alignItems: "flex-start",
-                flexWrap: "nowrap",
-                gap: "2%",
-                marginBottom: 30,
-                marginTop: 10,
-                // backgroundColor: "black",
-                // paddingBottom: 20,
-              }}
-            >
-              <div style={{ width: "30%" }}>
-                <PolarisTextField
-                  //   suffix={valueType !== "fixed_amount" && "%"}
-                  //   prefix={valueType === "fixed_amount" && "$"}
-                  // prefix="%"
-                  label="Quantity"
-                  type="number"
-                  value={preReqQuantity}
-                  onChange={handleChangePreReqQuantity}
-                  error={
-                    preReqQuantityValueError ? "Add atleast a quantity" : ""
-                  }
-                />
+      <AppProvider>
+        <Frame topBar={false} navigation={false}>
+          {isGetDiscount ? (
+            <Layout>
+              <div style={{ width: "100%", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <Layout.Section fullWidth>
+                  <LegacyCard subdued>
+                    <LegacyCard.Section>
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                    </LegacyCard.Section>
+                  </LegacyCard>
+                  <LegacyCard subdued>
+                    <LegacyCard.Section>
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                    </LegacyCard.Section>
+                  </LegacyCard>
+                  <LegacyCard subdued>
+                    <LegacyCard.Section>
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                    </LegacyCard.Section>
+                  </LegacyCard>
+                  <LegacyCard subdued>
+                    <LegacyCard.Section>
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                    </LegacyCard.Section>
+                  </LegacyCard>
+                  <LegacyCard subdued>
+                    <LegacyCard.Section>
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                    </LegacyCard.Section>
+                  </LegacyCard>
+                </Layout.Section>
+                <Layout.Section oneHalf={true}>
+                  <LegacyCard subdued>
+                    <LegacyCard.Section>
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                      <div style={{ marginTop: 10 }} />
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                      <div style={{ marginTop: 10 }} />
+                      <TextContainer>
+                        <SkeletonDisplayText size="small" />
+                        <SkeletonBodyText lines={2} />
+                      </TextContainer>
+                    </LegacyCard.Section>
+                  </LegacyCard>
+                </Layout.Section>
               </div>
-              <div style={{ width: "70%" }}>
-                <Select
-                  label={"Any items from"}
-                  options={filteredAppliesToOptions}
-                  value={_appliesTo}
-                  onChange={(value) => {
-                    // setCollectionOptions([]);
-                    // setProductOptions([]);
-                    set_AppliesTo(value);
-
-                    if (_appliesTo === "specific_collection") {
-                      setProductOptions_([]);
-                    } else {
-                      set_CollectionOptions([]);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <FormLayout condensed>
-                <Autocomplete
-                  allowMultiple
-                  options={_options_}
-                  selected={_selectedOptions_}
-                  onSelect={_updateSelection_}
-                  textField={_textField_}
-                  prefix={<Icon source={SearchMinor} />}
-                />
-                {productIdsError_ && (
-                  <Text as="p" color="critical">
-                    Select atleast a product to buy
-                  </Text>
-                )}
-              </FormLayout>
-            </div>
-            <div style={{ marginBottom: 5, marginTop: 5 }}>
-              <LegacyStack spacing="tight">{_tagMarkup_}</LegacyStack>
-            </div>
-            {/* Customer Gets Container */}
-            <div
-              style={{
-                opacity: 0.5,
-                borderTopWidth: 2, // Top border width in pixels
-                borderTopColor: "gray", // Add a color for the top border
-                borderStyle: "solid",
-                borderBottomWidth: 0,
-                borderLeftWidth: 0,
-                borderRightWidth: 0,
-                marginBottom: 10,
-                marginTop: 10,
-              }}
-            />
-            <div
-              style={{
-                fontWeight: "500",
-                marginBottom: 10,
-
-                // borderTopLeftRadius: 10,
-              }}
-            >
-              Customer gets
-            </div>
-            <div
-              style={{
-                fontWeight: "500",
-                marginBottom: 10,
-                fontSize: "13px",
-                color: "gray",
-              }}
-            >
-              Customer must add quantity of items specified below to thier cart.
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "flex-start",
-                alignItems: "flex-start",
-                flexWrap: "nowrap",
-                gap: "2%",
-                marginBottom: 30,
-                marginTop: 15,
-              }}
-            >
-              <div style={{ width: "30%" }}>
-                <PolarisTextField
-                  //   suffix={valueType !== "fixed_amount" && "%"}
-                  //   prefix={valueType === "fixed_amount" && "$"}
-                  // prefix="%"
-                  label="Quantity"
-                  type="number"
-                  value={entitledQuantity}
-                  onChange={handleChangeEntitledQuantity}
-                  error={
-                    entitledQuantityValueError ? "Add atleast a quantity" : ""
-                  }
-                />
-              </div>
-              <div style={{ width: "70%", borderRadius: "20%" }}>
-                <Select
-                  label={"Any items from"}
-                  options={filteredAppliesToOptions}
-                  value={appliesTo}
-                  onChange={(value) => {
-                    // setCollectionOptions([]);
-                    // setProductOptions([]);
-                    setAppliesTo(value);
-
-                    if (appliesTo === "specific_collection") {
-                      setProductOptions([]);
-                    } else {
-                      setCollectionOptions([]);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <FormLayout condensed>
-                <Autocomplete
-                  allowMultiple
-                  options={_options}
-                  selected={_selectedOptions}
-                  onSelect={_updateSelection}
-                  textField={_textField}
-                  prefix={<Icon source={SearchMinor} />}
-                />
-                {productIdsError && (
-                  <Text as="p" color="critical">
-                    Select atleast a product to get
-                  </Text>
-                )}
-              </FormLayout>
-            </div>
-            <div style={{ marginBottom: 5, marginTop: 5 }}>
-              <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
-            </div>
-
-            {/* Set Discounted Value */}
-
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-              }}
-            >
-              At a discounted value
-            </div>
-            <div
-              style={{
-                // display: "flex",
-                // justifyContent: "flex-start",
-                // gap: "10px",
-                width: "100%",
-                marginTop: 10,
-              }}
-            >
-              <ChoiceList
-                // title="Company name"
-                variant="group"
-                choices={[
-                  { label: "Percentage", value: "percentage", renderChildren },
-                  {
-                    label: "Amount off each",
-                    value: "fixed_amount",
-                    renderChildren,
-                  },
-                  {
-                    label: "Free",
-                    value: "free",
-                  },
-                ]}
-                selected={discountedValue}
-                onChange={handleChangeDiscountedValue}
-              />
-            </div>
-          </div>
-          {/* third card */}
-          <div
-            style={{
-              marginBottom: 5,
-
-              marginTop: 110,
-              // marginTop: 110,
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-              }}
-            >
-              Customer eligibility
-            </div>
-            <div
-              style={{
-                // display: "flex",
-                // justifyContent: "flex-start",
-                // gap: "10px",
-                width: "100%",
-                marginTop: 10,
-              }}
-            >
-              <ChoiceList
-                // title="Company name"
-                variant="group"
-                choices={[
-                  { label: "All customers", value: "all" },
-                  // { label: "Specific customer segments", value: "SCS" },
-                  { label: "Specific customers", value: "SC" },
-                ]}
-                selected={customerSelected}
-                onChange={handleChangeCustomerSelection}
-              />
-              <div style={{ marginTop: 20 }} />
-              {checkCustomerSelected === "SC" && (
-                <FormLayout condensed>
-                  <Autocomplete
-                    allowMultiple
-                    options={options}
-                    selected={selectedOptions}
-                    onSelect={updateSelection}
-                    textField={textField}
-                    prefix={<Icon source={SearchMinor} />}
-                  />
-                  {customerIdsError && (
-                    <Text as="p" color="critical">
-                      Select atleast a customer
-                    </Text>
-                  )}
-                </FormLayout>
-              )}
-            </div>
-            <div style={{ marginBottom: 5, marginTop: 15 }}>
-              <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
-            </div>
-          </div>
-          {/* fourth card */}
-          <div
-            style={{
-              marginBottom: 5,
-
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 10,
-              }}
-            >
-              Maximum discount uses
-            </div>
-            <div>
-              <Checkbox
-                label="Limit number of times this discount can be used in total"
-                checked={usageLimitchecked}
-                onChange={handleChangeUsageLimitChecked}
-              />
-              {usageLimitchecked && (
-                <div style={{ marginLeft: 27, width: "20%" }}>
-                  <PolarisTextField
-                    type="number"
-                    label=""
-                    value={usageLimitValue}
-                    onChange={(value) => setUsageLimitValue(value)}
-                    error={
-                      usageLimitCodeError ? "usage limit value required." : ""
-                    }
-                  />
-                </div>
-              )}
-            </div>
-            <div>
-              <Checkbox
-                label="Limit to one user per customer"
-                checked={oneUserPerCustomerchecked}
-                onChange={handleChangeoneUserPerCustomerChecked}
-              />
-            </div>
-          </div>
-          {/* fifth card */}
-          <div
-            style={{
-              marginBottom: 5,
-
-              padding: 10,
-              borderColor: "#FFFFFF",
-              borderRadius: "10px",
-              width: "100%",
-              height: "40%",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "black",
-                marginBottom: 5,
-              }}
-            >
-              Active dates
-            </div>
-            <div
-              style={{
-                display: "flex",
-                // justifyContent: "flex-start",
-                gap: "10px",
-                width: "100%",
-              }}
-            >
+            </Layout>
+          ) : (
+            <>
               <div
                 style={{
-                  // backgroundColor: "yellow",
                   display: "flex",
                   flexDirection: "row",
-                  // flexGrow: 1,
-                  // justifyContent: "space-between",
                   width: "100%",
-                  gap: "12px",
+                  gap: "20px",
                 }}
               >
-                <div
-                  style={{ flex: 1, width: "50%" }} // Increases width
-                >
-                  <PolarisTextField
-                    label="Select a start date"
-                    type="date"
-                    value={selectedDate}
-                    onChange={(value) => {
-                      setSelectedDate(value);
-                    }}
-                  />
-                  {codeStartDateError && (
-                    <Text as="p" color="critical">
-                      Start Date is required.
-                    </Text>
-                  )}
-                </div>
-                <div
-                  style={{ flex: 1, width: "50%" }} // Increases width
-                >
-                  <PolarisTextField
-                    label="Start time"
-                    type="time"
-                    value={startsAtTime}
-                    onChange={(value) => {
-                      setStartsAtTime(value);
-                    }}
-                    style={{ flexGrow: 1, width: "100%" }} // Increases width
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 10, marginBottom: 10 }}>
-              <Checkbox
-                label={<span style={{ fontWeight: "500" }}>Set end date</span>}
-                checked={checked}
-                onChange={handleChangeCheckbox}
-              />
-            </div>
-            {checked && (
-              <div
-                style={{
-                  marginTop: 10,
-                  display: "flex",
-                  // justifyContent: "flex-start",
-                  gap: "10px",
-                  width: "100%",
-                }}
-              >
+                {/* main */}
                 <div
                   style={{
-                    // backgroundColor: "yellow",
+                    width: "70%",
                     display: "flex",
-                    flexDirection: "row",
-                    // flexGrow: 1,
-                    // justifyContent: "space-between",
-                    width: "100%",
-                    gap: "12px",
+                    flexDirection: "column",
+                    gap: "15px",
                   }}
                 >
+                  {/* first card */}
+                  <DiscountCodeUI
+                    disabled={
+                      id?.current &&
+                        !isLoading &&
+                        _options_.length > 0 &&
+                        _options.length > 0
+                        ? true
+                        : false
+                    }
+                    handleRandomCodeGenerate={
+                      !(
+                        id?.current &&
+                        !isLoading &&
+                        _options_.length > 0 &&
+                        _options.length > 0
+                      ) && handleRandomCodeGenerate
+                    }
+                    newDiscountCode={newDiscountCode}
+                    setNewDiscountCode={setNewDiscountCode}
+                    codeError={codeError}
+                    topLeftBannerName="Buy X get Y"
+                    topRightBannerName="product discount"
+                  />
+                  {/* second card */}
                   <div
-                    style={{ flex: 1, width: "50%" }} // Increases width
+                    style={{
+                      // marginBottom: 5,
+                      padding: 10,
+                      borderColor: "#FFFFFF",
+                      borderRadius: "10px",
+                      width: "100%",
+                      height: "90%",
+                      backgroundColor: "#FFFFFF",
+                      border: "1px solid #FFFFFF",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                      position: "relative",
+                      marginBottom: -110,
+                    }}
                   >
-                    <PolarisTextField
-                      label="Select an end date"
-                      type="date"
-                      value={selectedDateEnd}
-                      onChange={(value) => {
-                        setSelectedDateEnd(value);
+                    {/* Customer Buys Container */}
+                    <div style={{ fontWeight: "500" }}>Customer buys</div>
+                    <div style={{ fontWeight: "500", marginTop: 10 }}>
+                      Purchase type
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: "500",
+                        marginBottom: 10,
+                        fontSize: "13px",
+                        color: "gray",
+                      }}
+                    >
+                      Buy X get Y discounts are only supported with one-time
+                      purchases.
+                    </div>
+                    <ChoiceList
+                      // title="Company name"
+                      variant="group"
+                      choices={filteredValueTypeOptions}
+                      selected={valueType}
+                      onChange={(value) => setValueType(value)}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        justifyContent: "flex-start",
+                        alignItems: "flex-start",
+                        flexWrap: "nowrap",
+                        gap: "2%",
+                        marginBottom: 30,
+                        marginTop: 10,
+                        // backgroundColor: "black",
+                        // paddingBottom: 20,
+                      }}
+                    >
+                      <div style={{ width: "30%" }}>
+                        <PolarisTextField
+                          // suffix={valueType !== "MPA" && "%"}
+                          prefix={valueType[0] === "MPA" && "$"}
+                          // prefix="%"
+                          label="Quantity"
+                          type="number"
+                          value={valueType[0] === "MPA" ? spendAmount : preReqQuantity}
+                          onChange={handleChangePreReqQuantity}
+                          error={
+                            preReqQuantityValueError ? "Add atleast a quantity" : ""
+                          }
+                        />
+                      </div>
+                      <div style={{ width: "70%" }}>
+                        <Select
+                          label={"Any items from"}
+                          options={filteredAppliesToOptions}
+                          value={_appliesTo}
+                          onChange={(value) => {
+                            // setCollectionOptions([]);
+                            // setProductOptions([]);
+                            set_AppliesTo(value);
+
+                            if (_appliesTo === "specific_collection") {
+                              setProductOptions_([]);
+                            } else {
+                              set_CollectionOptions([]);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 15 }}>
+                      <FormLayout condensed>
+                        <Autocomplete
+                          allowMultiple
+                          options={_options_}
+                          selected={_selectedOptions_}
+                          onSelect={_updateSelection_}
+                          textField={_textField_}
+                          prefix={<Icon source={SearchMinor} />}
+                        />
+                        {productIdsError_ && (
+                          <Text as="p" color="critical">
+                            Select atleast a product to buy
+                          </Text>
+                        )}
+                      </FormLayout>
+                    </div>
+                    <div style={{ marginBottom: 5, marginTop: 5 }}>
+                      <LegacyStack spacing="tight">{_tagMarkup_}</LegacyStack>
+                    </div>
+                    {/* Customer Gets Container */}
+                    <div
+                      style={{
+                        opacity: 0.5,
+                        borderTopWidth: 2, // Top border width in pixels
+                        borderTopColor: "gray", // Add a color for the top border
+                        borderStyle: "solid",
+                        borderBottomWidth: 0,
+                        borderLeftWidth: 0,
+                        borderRightWidth: 0,
+                        marginBottom: 10,
+                        marginTop: 10,
                       }}
                     />
+                    <div
+                      style={{
+                        fontWeight: "500",
+                        marginBottom: 10,
+
+                        // borderTopLeftRadius: 10,
+                      }}
+                    >
+                      Customer gets
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: "500",
+                        marginBottom: 10,
+                        fontSize: "13px",
+                        color: "gray",
+                      }}
+                    >
+                      Customer must add quantity of items specified below to thier
+                      cart.
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        justifyContent: "flex-start",
+                        alignItems: "flex-start",
+                        flexWrap: "nowrap",
+                        gap: "2%",
+                        marginBottom: 30,
+                        marginTop: 15,
+                      }}
+                    >
+                      <div style={{ width: "30%" }}>
+                        <PolarisTextField
+                          //   suffix={valueType !== "fixed_amount" && "%"}
+                          //   prefix={valueType === "fixed_amount" && "$"}
+                          // prefix="%"
+                          label="Quantity"
+                          type="number"
+                          value={entitledQuantity}
+                          onChange={handleChangeEntitledQuantity}
+                          error={
+                            entitledQuantityValueError
+                              ? "Add atleast a quantity"
+                              : ""
+                          }
+                        />
+                      </div>
+                      <div style={{ width: "70%", borderRadius: "20%" }}>
+                        <Select
+                          label={"Any items from"}
+                          options={filteredAppliesToOptions}
+                          value={appliesTo}
+                          onChange={(value) => {
+                            // setCollectionOptions([]);
+                            // setProductOptions([]);
+                            setAppliesTo(value);
+
+                            if (appliesTo === "specific_collection") {
+                              setProductOptions([]);
+                            } else {
+                              setCollectionOptions([]);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 15 }}>
+                      <FormLayout condensed>
+                        <Autocomplete
+                          allowMultiple
+                          options={_options}
+                          selected={_selectedOptions}
+                          onSelect={_updateSelection}
+                          textField={_textField}
+                          prefix={<Icon source={SearchMinor} />}
+                        />
+                        {productIdsError && (
+                          <Text as="p" color="critical">
+                            Select atleast a product to get
+                          </Text>
+                        )}
+                      </FormLayout>
+                    </div>
+                    <div style={{ marginBottom: 5, marginTop: 5 }}>
+                      <LegacyStack spacing="tight">{_tagMarkup}</LegacyStack>
+                    </div>
+
+                    {/* Set Discounted Value */}
+
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "black",
+                        marginBottom: 5,
+                      }}
+                    >
+                      At a discounted value
+                    </div>
+                    <div
+                      style={{
+                        // display: "flex",
+                        // justifyContent: "flex-start",
+                        // gap: "10px",
+                        width: "100%",
+                        marginTop: 10,
+                      }}
+                    >
+                      <ChoiceList
+                        // title="Company name"
+                        variant="group"
+                        choices={[
+                          {
+                            label: "Percentage",
+                            value: "percentage",
+                            renderChildren,
+                          },
+                          {
+                            label: "Amount off each",
+                            value: "fixed_amount",
+                            renderChildren,
+                          },
+                          {
+                            label: "Free",
+                            value: "free",
+                          },
+                        ]}
+                        selected={discountedValue}
+                        onChange={handleChangeDiscountedValue}
+                      />
+                    </div>
                   </div>
+                  {/* third card */}
                   <div
-                    style={{ flex: 1, width: "50%" }} // Increases width
+                    style={{
+                      marginBottom: 5,
+
+                      marginTop: 110,
+                      // marginTop: 110,
+                      padding: 10,
+                      borderColor: "#FFFFFF",
+                      borderRadius: "10px",
+                      width: "100%",
+                      height: "40%",
+                      backgroundColor: "#FFFFFF",
+                      border: "1px solid #FFFFFF",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                    }}
                   >
-                    <PolarisTextField
-                      label="End time"
-                      type="time"
-                      value={endAtTime}
-                      onChange={(value) => {
-                        setEndAtTime(value);
+                    <div
+                      style={{
+                        width: "100%",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "black",
+                        marginBottom: 5,
                       }}
-                    // error={codeStartDateError ? "Start Date is required." : ""}
-                    />
+                    >
+                      Customer eligibility
+                    </div>
+                    <div
+                      style={{
+                        // display: "flex",
+                        // justifyContent: "flex-start",
+                        // gap: "10px",
+                        width: "100%",
+                        marginTop: 10,
+                      }}
+                    >
+                      <ChoiceList
+                        // title="Company name"
+                        variant="group"
+                        choices={[
+                          { label: "All customers", value: "all" },
+                          // { label: "Specific customer segments", value: "SCS" },
+                          { label: "Specific customers", value: "SC" },
+                        ]}
+                        selected={customerSelected}
+                        onChange={handleChangeCustomerSelection}
+                      />
+                      <div style={{ marginTop: 20 }} />
+                      {checkCustomerSelected === "SC" && (
+                        <FormLayout condensed>
+                          <Autocomplete
+                            allowMultiple
+                            options={options}
+                            selected={selectedOptions}
+                            onSelect={updateSelection}
+                            textField={textField}
+                            prefix={<Icon source={SearchMinor} />}
+                          />
+                          {customerIdsError && (
+                            <Text as="p" color="critical">
+                              Select atleast a customer
+                            </Text>
+                          )}
+                        </FormLayout>
+                      )}
+                    </div>
+                    <div style={{ marginBottom: 5, marginTop: 15 }}>
+                      <LegacyStack spacing="tight">{tagMarkup}</LegacyStack>
+                    </div>
+                  </div>
+                  {/* fourth card */}
+                  <div
+                    style={{
+                      marginBottom: 5,
+
+                      padding: 10,
+                      borderColor: "#FFFFFF",
+                      borderRadius: "10px",
+                      width: "100%",
+                      height: "40%",
+                      backgroundColor: "#FFFFFF",
+                      border: "1px solid #FFFFFF",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "black",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Maximum discount uses
+                    </div>
+                    <div>
+                      <Checkbox
+                        label="Limit number of times this discount can be used in total"
+                        checked={usageLimitchecked}
+                        onChange={handleChangeUsageLimitChecked}
+                      />
+                      {usageLimitchecked && (
+                        <div style={{ marginLeft: 27, width: "20%" }}>
+                          <PolarisTextField
+                            type="number"
+                            label=""
+                            value={usageLimitValue}
+                            onChange={(value) => setUsageLimitValue(value)}
+                            error={
+                              usageLimitCodeError
+                                ? "usage limit value required."
+                                : ""
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Checkbox
+                        label="Limit to one user per customer"
+                        checked={oneUserPerCustomerchecked}
+                        onChange={handleChangeoneUserPerCustomerChecked}
+                      />
+                    </div>
+                  </div>
+                  {/* fifth card */}
+                  <div
+                    style={{
+                      marginBottom: 5,
+
+                      padding: 10,
+                      borderColor: "#FFFFFF",
+                      borderRadius: "10px",
+                      width: "100%",
+                      height: "40%",
+                      backgroundColor: "#FFFFFF",
+                      border: "1px solid #FFFFFF",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "black",
+                        marginBottom: 5,
+                      }}
+                    >
+                      Active dates
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        // justifyContent: "flex-start",
+                        gap: "10px",
+                        width: "100%",
+                      }}
+                    >
+                      <div
+                        style={{
+                          // backgroundColor: "yellow",
+                          display: "flex",
+                          flexDirection: "row",
+                          // flexGrow: 1,
+                          // justifyContent: "space-between",
+                          width: "100%",
+                          gap: "12px",
+                        }}
+                      >
+                        <div
+                          style={{ flex: 1, width: "50%" }} // Increases width
+                        >
+                          <PolarisTextField
+                            label="Select a start date"
+                            type="date"
+                            value={selectedDate}
+                            onChange={(value) => {
+                              setSelectedDate(value);
+                            }}
+                          />
+                          {codeStartDateError && (
+                            <Text as="p" color="critical">
+                              Start Date is required.
+                            </Text>
+                          )}
+                        </div>
+                        <div
+                          style={{ flex: 1, width: "50%" }} // Increases width
+                        >
+                          <PolarisTextField
+                            label="Start time"
+                            type="time"
+                            value={startsAtTime}
+                            onChange={(value) => {
+                              setStartsAtTime(value);
+                            }}
+                            style={{ flexGrow: 1, width: "100%" }} // Increases width
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 10, marginBottom: 10 }}>
+                      <Checkbox
+                        label={
+                          <span style={{ fontWeight: "500" }}>Set end date</span>
+                        }
+                        checked={checked}
+                        onChange={handleChangeCheckbox}
+                      />
+                    </div>
+                    {checked && (
+                      <div
+                        style={{
+                          marginTop: 10,
+                          display: "flex",
+                          // justifyContent: "flex-start",
+                          gap: "10px",
+                          width: "100%",
+                        }}
+                      >
+                        <div
+                          style={{
+                            // backgroundColor: "yellow",
+                            display: "flex",
+                            flexDirection: "row",
+                            // flexGrow: 1,
+                            // justifyContent: "space-between",
+                            width: "100%",
+                            gap: "12px",
+                          }}
+                        >
+                          <div
+                            style={{ flex: 1, width: "50%" }} // Increases width
+                          >
+                            <PolarisTextField
+                              label="Select an end date"
+                              type="date"
+                              value={selectedDateEnd}
+                              onChange={(value) => {
+                                setSelectedDateEnd(value);
+                              }}
+                            />
+                          </div>
+                          <div
+                            style={{ flex: 1, width: "50%" }} // Increases width
+                          >
+                            <PolarisTextField
+                              label="End time"
+                              type="time"
+                              value={endAtTime}
+                              onChange={(value) => {
+                                setEndAtTime(value);
+                              }}
+                            // error={codeStartDateError ? "Start Date is required." : ""}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* summary card */}
+                <div
+                  style={{
+                    width: "30%",
+                    height: "40%",
+                    // flex: 1,
+                    padding: 10,
+                    borderColor: "#FFFFFF",
+                    borderRadius: "10px",
+                    backgroundColor: "#FFFFFF",
+                    border: "1px solid #FFFFFF",
+                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
+                    // position: "fixed",
+                    // alignContent: "flex-end",
+                    // alignSelf: "self-end", // Ensure it stays at the top
+                  }}
+                >
+                  <span
+                    style={{ fontSize: "14px", fontWeight: "500", color: "black" }}
+                  >
+                    Summary
+                  </span>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      marginBottom: 20,
+                      fontSize: "12px",
+                      color: "gray",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {newDiscountCode ? newDiscountCode : "No discount code yet"}
+                  </div>
+                  <span
+                    style={{ fontSize: "14px", fontWeight: "500", color: "black" }}
+                  >
+                    Type and method
+                  </span>
+                  <div style={defaultListStyle}>
+                    <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
+                      {items.map((item, index) => (
+                        <li
+                          key={index}
+                          style={{ display: "flex", alignItems: "center" }}
+                        >
+                          <span style={bulletStyle}>•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    {/* <button onClick={() => addItem("New Point")}>Add Point</button> */}
+                  </div>
+                  <span
+                    style={{ fontSize: "14px", fontWeight: "500", color: "black" }}
+                  >
+                    Details
+                  </span>
+                  <div style={defaultListStyle}>
+                    <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
+                      {items_two.map((item, index) => (
+                        <li
+                          key={index}
+                          style={{ display: "flex", alignItems: "center" }}
+                        >
+                          <span style={bulletStyle}>•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    {/* <button onClick={() => addItem_two("New Point")}>Add Point</button> */}
+                  </div>
+                  <span
+                    style={{ fontSize: "14px", fontWeight: "500", color: "black" }}
+                  >
+                    Performance
+                  </span>
+                  <div
+                    style={{
+                      marginTop: 10,
+                      marginBottom: 10,
+                      fontSize: "12px",
+                      color: "gray",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Discount is not active yet
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-        {/* summary card */}
-        <div
-          style={{
-            width: "30%",
-            height: "40%",
-            // flex: 1,
-            padding: 10,
-            borderColor: "#FFFFFF",
-            borderRadius: "10px",
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #FFFFFF",
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect
-            // position: "fixed",
-            // alignContent: "flex-end",
-            // alignSelf: "self-end", // Ensure it stays at the top
-          }}
-        >
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Summary
-          </span>
 
-          <div
-            style={{
-              marginTop: 10,
-              marginBottom: 20,
-              fontSize: "12px",
-              color: "gray",
-              fontWeight: "500",
-            }}
-          >
-            {newDiscountCode ? newDiscountCode : "No discount code yet"}
-          </div>
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Type and method
-          </span>
-          <div style={defaultListStyle}>
-            <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
-              {items.map((item, index) => (
-                <li
-                  key={index}
-                  style={{ display: "flex", alignItems: "center" }}
+              <div
+                style={{
+                  marginTop: 15,
+                  marginBottom: 15,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "10px",
+                }}
+              >
+                {!modalLoader && (
+                  <button
+                    // loading={modalLoader}
+                    onClick={() => navigate("/")}
+                    primary
+                    style={{
+                      // borderColor: "transparent",
+                      backgroundColor: "white",
+                      color: "black",
+                      borderRadius: "8px", // Adjust the radius as needed
+                      height: "26px", // Adjust the height as needed
+                      padding: "0 14px", // Adjust padding as needed
+                      fontWeight: "bold", // Optional, for text styling
+                      fontSize: "12px",
+                      borderColor: "#FFFFFF",
+                      cursor: "default", // Default cursor
+                      border: "1px solid #FFFFFF",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect          }}
+                    }}
+                  >
+                    Discard
+                  </button>
+                )}
+                <button
+                  // loading={modalLoader}
+                  onClick={() =>
+                    isAutomatic
+                      ? createDiscount()
+                      : handleCreateDiscount(
+                        id?.current &&
+                          !isLoading &&
+                          _options_.length > 0 &&
+                          _options.length > 0
+                          ? id?.current
+                          : null
+                      )
+                  }
+                  primary
+                  style={{
+                    backgroundColor: "black",
+                    color: "white",
+                    borderRadius: "8px", // Adjust the radius as needed
+                    height: "26px", // Adjust the height as needed
+                    padding: "0 14px", // Adjust padding as needed
+                    fontWeight: "bold", // Optional, for text styling
+                    fontSize: "12px",
+                    cursor: "default", // Default cursor
+                  }}
                 >
-                  <span style={bulletStyle}>•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {/* <button onClick={() => addItem("New Point")}>Add Point</button> */}
-          </div>
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Details
-          </span>
-          <div style={defaultListStyle}>
-            <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
-              {items_two.map((item, index) => (
-                <li
-                  key={index}
-                  style={{ display: "flex", alignItems: "center" }}
-                >
-                  <span style={bulletStyle}>•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {/* <button onClick={() => addItem_two("New Point")}>Add Point</button> */}
-          </div>
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "black" }}>
-            Performance
-          </span>
-          <div
-            style={{
-              marginTop: 10,
-              marginBottom: 10,
-              fontSize: "12px",
-              color: "gray",
-              fontWeight: "500",
-            }}
-          >
-            Discount is not active yet
-          </div>
-        </div>
-      </div>
-      {/* cancel and save buttons */}
-      <div
-        style={{
-          marginTop: 15,
-          marginBottom: 15,
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "10px",
-        }}
-      >
-        {!modalLoader && (
-          <button
-            // loading={modalLoader}
-            onClick={() => navigate("/")}
-            primary
-            style={{
-              // borderColor: "transparent",
-              backgroundColor: "white",
-              color: "black",
-              borderRadius: "8px", // Adjust the radius as needed
-              height: "26px", // Adjust the height as needed
-              padding: "0 14px", // Adjust padding as needed
-              fontWeight: "bold", // Optional, for text styling
-              fontSize: "12px",
-              borderColor: "#FFFFFF",
-              cursor: "default", // Default cursor
-              border: "1px solid #FFFFFF",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Adds shadow effect          }}
-            }}
-          >
-            Discard
-          </button>
-        )}
-        <button
-          // loading={modalLoader}
-          onClick={() =>
-            isAutomatic ? createDiscount() : handleCreateDiscount()
-          }
-          primary
-          style={{
-            backgroundColor: "black",
-            color: "white",
-            borderRadius: "8px", // Adjust the radius as needed
-            height: "26px", // Adjust the height as needed
-            padding: "0 14px", // Adjust padding as needed
-            fontWeight: "bold", // Optional, for text styling
-            fontSize: "12px",
-            cursor: "default", // Default cursor
-          }}
-        >
-          {modalLoader ? (
-            <img
-              src={spinner}
-              alt="Loading..."
-              style={{ width: "20px", height: "20px" }}
-            />
-          ) : (
-            "Create Discount"
+                  {modalLoader ? (
+                    <img
+                      src={spinner}
+                      alt="Loading..."
+                      style={{ width: "20px", height: "20px" }}
+                    />
+                  ) : id?.current &&
+                    !isLoading &&
+                    _options_.length > 0 &&
+                    _options.length > 0 ? (
+                    "Save"
+                  ) : (
+                    "Create Discount"
+                  )}
+                </button>
+              </div>
+              <div style={{ margin: "20px" }}>
+                {/* <Button onClick={toggleActive}>Show Toast</Button> */}
+                {toastMarkup}
+              </div>
+            </>
           )}
-        </button>
-      </div>
+
+
+        </Frame>
+      </AppProvider>
     </Page>
   );
 }

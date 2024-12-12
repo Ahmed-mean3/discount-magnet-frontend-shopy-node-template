@@ -142,8 +142,8 @@ export default function AddDiscountOrder() {
   const renderChildren = useCallback(
     (selected) =>
       selected &&
-      (minRequirementCheckselected === "MPA" ||
-        minRequirementCheckselected === "MQI") ? (
+        (minRequirementCheckselected === "MPA" ||
+          minRequirementCheckselected === "MQI") ? (
         <>
           <div style={{ width: "20%" }}>
             <PolarisTextField
@@ -169,8 +169,8 @@ export default function AddDiscountOrder() {
                 minRequirementCheckselected === "MPA" && minPurchaseReqError
                   ? "Minimum purchase value required."
                   : minRequirementCheckselected === "MQI" && minQuantityReqError
-                  ? "Minimum quantity value is required"
-                  : ""
+                    ? "Minimum quantity value is required"
+                    : ""
               }
             />
           </div>
@@ -401,16 +401,16 @@ export default function AddDiscountOrder() {
         set_Options(
           CountriesOptions.length > 0
             ? CountriesOptions.map((collection) => ({
-                value: collection.value,
-                label: collection.label,
-              }))
+              value: collection.value,
+              label: collection.label,
+            }))
             : [
-                { value: 1, label: "Rustic" },
-                { value: 2, label: "Antique" },
-                { value: 3, label: "Vinyl" },
-                { value: 4, label: "Vintage" },
-                { value: 5, label: "Refurbished" },
-              ]
+              { value: 1, label: "Rustic" },
+              { value: 2, label: "Antique" },
+              { value: 3, label: "Vinyl" },
+              { value: 4, label: "Vintage" },
+              { value: 5, label: "Refurbished" },
+            ]
         );
         return;
       }
@@ -868,43 +868,43 @@ export default function AddDiscountOrder() {
           // Make sure entitled_product_ids is an array
           ...(purchaseTypeSelected &&
             purchaseTypeSelected !== "otp" && {
-              entitled_product_ids:
-                purchaseTypeSelected === "sub"
-                  ? subscriptionProducts
-                  : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
-            }),
+            entitled_product_ids:
+              purchaseTypeSelected === "sub"
+                ? subscriptionProducts
+                : [...oneTimePurchaseProducts, ...subscriptionProducts], // Concatenates the two arrays
+          }),
 
           // Conditionally add prerequisite if minRequirementCheckselected is "MPA"
           ...(minRequirementCheckselected === "MPA" &&
             minPurchaseReq && {
-              prerequisite_subtotal_range: {
-                greater_than_or_equal_to: minPurchaseReq,
-              },
-            }),
+            prerequisite_subtotal_range: {
+              greater_than_or_equal_to: minPurchaseReq,
+            },
+          }),
 
           // Conditionally add prerequisite if minRequirementCheckselected is "MQI"
           ...(minRequirementCheckselected === "MQI" &&
             minQuantityReq && {
-              prerequisite_to_entitlement_quantity_ratio: {
-                prerequisite_quantity: minQuantityReq,
-                entitled_quantity: 1,
-              },
-              prerequisite_product_ids: prodIds, // Only add when MQI is selected
-            }),
+            prerequisite_to_entitlement_quantity_ratio: {
+              prerequisite_quantity: minQuantityReq,
+              entitled_quantity: 1,
+            },
+            prerequisite_product_ids: prodIds, // Only add when MQI is selected
+          }),
           // Add prerequisite_customer_ids if applicable
           ...(checkCustomerSelected === "SC" ||
-          (checkCustomerSelected === "SCS" && customerIds.length > 0)
+            (checkCustomerSelected === "SCS" && customerIds.length > 0)
             ? { prerequisite_customer_ids: customerIds }
             : {}),
 
           //exclude shipping rates value
           ...(excludeShippingRates &&
             excludeShippingRatesValue > 0 && {
-              hasExcludeShippingRatesOver: { value: true },
-              excludeShippingRatesOver: {
-                value: excludeShippingRatesValue + ".00",
-              },
-            }),
+            hasExcludeShippingRatesOver: { value: true },
+            excludeShippingRatesOver: {
+              value: excludeShippingRatesValue + ".00",
+            },
+          }),
 
           usage_limit: usageLimitValue,
           once_per_customer: !!oneUserPerCustomerchecked,
@@ -1435,7 +1435,7 @@ export default function AddDiscountOrder() {
           {/* second card */}
           <div
             style={{
-              marginBottom: 5,
+              // marginBottom: 5,
 
               padding: 10,
               borderColor: "#FFFFFF",
@@ -1521,7 +1521,7 @@ export default function AddDiscountOrder() {
           {/* third card */}
           <div
             style={{
-              marginBottom: 5,
+              // marginBottom: 5,
               padding: 10,
               borderColor: "#FFFFFF",
               borderRadius: "10px",
@@ -1844,7 +1844,7 @@ export default function AddDiscountOrder() {
                       onChange={(value) => {
                         setEndAtTime(value);
                       }}
-                      // error={codeStartDateError ? "Start Date is required." : ""}
+                    // error={codeStartDateError ? "Start Date is required." : ""}
                     />
                   </div>
                 </div>

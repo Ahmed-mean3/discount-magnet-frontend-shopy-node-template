@@ -2,6 +2,7 @@ import { Button, TextField as PolarisTextField, Text } from "@shopify/polaris";
 import React from "react";
 
 function DiscountCodeUI({
+  disabled = false,
   handleRandomCodeGenerate,
   newDiscountCode,
   setNewDiscountCode,
@@ -74,6 +75,7 @@ function DiscountCodeUI({
         </Button>
       </div>
       <PolarisTextField
+        disabled={disabled}
         label="Discount Code"
         value={newDiscountCode}
         onChange={(value) => setNewDiscountCode(value)}

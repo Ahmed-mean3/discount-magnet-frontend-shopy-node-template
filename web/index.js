@@ -217,12 +217,48 @@ app.get("/api/get-discounts", async (req, res) => {
       });
     }
     pgInfo = priceRules.pageInfo;
+    function getDiscountType(rule) {
+      // Check for shipping discounts
+      if (rule.target_type === "shipping_line") {
+        return "AddDiscountShipping";
+      }
+
+      // Check for product-specific discounts
+      if (
+        rule.entitled_product_ids?.length > 0 ||
+        rule.entitled_variant_ids?.length > 0 ||
+        rule.entitled_collection_ids?.length > 0
+      ) {
+        // Further classify product discounts
+        if (
+          rule.prerequisite_to_entitlement_quantity_ratio
+            .prerequisite_quantity &&
+          rule.prerequisite_to_entitlement_quantity_ratio.entitled_quantity
+        ) {
+          return "AddDiscountBuyXGetYFree"; // Subtype for Buy X Get Y
+        }
+
+        return "AddDiscount"; // Subtype for simple product discount
+      }
+
+      // Check for order-level discounts
+      if (
+        rule.target_type === "line_item" &&
+        rule.allocation_method === "across"
+      ) {
+        return "AddDiscountOrder";
+      }
+
+      // Default case (if no specific type matches)
+      return "unknown";
+    }
 
     // priceRules.pageInfo
     let filteredPriceRules = [];
 
     for (const rule of priceRules.data) {
       if (rule.title.startsWith("CC_")) {
+        const type = getDiscountType(rule);
         filteredPriceRules.push({
           code: rule.title,
           usage_count: rule.usage_count,
@@ -257,10 +293,11 @@ app.get("/api/get-discounts", async (req, res) => {
             prerequisite_to_entitlement_quantity_ratio:
               rule.prerequisite_to_entitlement_quantity_ratio,
             prerequisite_to_entitlement_purchase:
-              rule.prerequisite_to_entitlement_purchase,
+              rule.prerequisite_to_entitlement_purchase.prerequisite_amount,
             title: rule.title,
             admin_graphql_api_id: rule.admin_graphql_api_id,
           },
+          type,
         });
       }
     }
@@ -346,7 +383,7 @@ app.get("/api/get-price_rule/:id", async (req, res) => {
       id: priceRuleId,
     });
 
-    console.log("price rule recieved and sent to client", response);
+    // console.log("price rule recieved and sent to client", response);
     // Response
     res.status(200).send({
       status: true,
@@ -470,7 +507,7 @@ app.post("/api/create-automatic-discount", async (req, res) => {
 app.post("/api/add-discount-code", async (req, res) => {
   try {
     const { discount_type, price_rule, discount_code } = req.body;
-
+    console.log("checking payload", price_rule);
     if (!res.locals.shopify || !res.locals.shopify.session) {
       return res.status(400).send({ message: "Invalid session" });
     }
@@ -603,11 +640,17 @@ app.post("/api/add-discount-code", async (req, res) => {
     priceRule.ends_at = price_rule.ends_at || undefined;
     if (discount_type === "product") {
       priceRule.prerequisite_subtotal_range =
-        price_rule.prerequisite_subtotal_range || {};
+        price_rule.prerequisite_subtotal_range?.greater_than_or_equal_to || {};
     }
     if (discount_type === "product") {
       priceRule.prerequisite_to_entitlement_quantity_ratio =
-        price_rule.prerequisite_to_entitlement_quantity_ratio || {};
+        price_rule.prerequisite_to_entitlement_quantity_ratio
+          ?.prerequisite_quantity || {};
+    }
+    if (discount_type === "product") {
+      priceRule.prerequisite_to_entitlement_purchase =
+        price_rule.prerequisite_to_entitlement_purchase?.prerequisite_amount ??
+        {};
     }
     if (discount_type === "product") {
       priceRule.entitled_product_ids = price_rule.entitled_product_ids || [];
@@ -674,7 +717,7 @@ app.post("/api/add-discount-code", async (req, res) => {
       };
     }
     priceRule.allocation_limit = price_rule.allocation_limit || undefined;
-    priceRule.usage_limit = price_rule.usage_limit || undefined;
+    priceRule.usage_limit = price_rule.usage_limit || null;
     priceRule.once_per_customer = price_rule.once_per_customer || false;
     priceRule.combinesWithProductDiscounts =
       price_rule.combinesWithProductDiscounts || false;
@@ -743,16 +786,16 @@ app.post("/api/add-discount-code", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating discount:", error);
-    res.status(400).send({ message: "Failed to create discount" });
+    res.status(400).send({ message: "Failed to create discount", error });
   }
 });
 
 app.put("/api/update-price_rule/:id", async (req, res) => {
   try {
-    // console.log("price rule id", req.params.id);
     const priceRuleId = req.params.id; // Note: Query parameter instead of path parameter
     const { discount_type, price_rule, discount_code } = req.body;
-
+    console.log("checking", price_rule);
+    // console.log("price_rulesj", price_rule);
     if (!priceRuleId) {
       return res.status(400).send({
         status: false,
@@ -781,39 +824,56 @@ app.put("/api/update-price_rule/:id", async (req, res) => {
     response.ends_at = price_rule.ends_at || undefined;
     if (discount_type === "product") {
       response.prerequisite_subtotal_range =
-        price_rule.prerequisite_subtotal_range || {};
+        price_rule.prerequisite_subtotal_range?.greater_than_or_equal_to || {};
     }
     if (discount_type === "product") {
       response.prerequisite_to_entitlement_quantity_ratio =
-        price_rule.prerequisite_to_entitlement_quantity_ratio || {};
+        price_rule.prerequisite_to_entitlement_quantity_ratio
+          ?.prerequisite_quantity || {};
     }
     if (discount_type === "product") {
-      response.entitled_product_ids = price_rule.entitled_product_ids || [];
+      response.prerequisite_to_entitlement_purchase = price_rule
+        .prerequisite_to_entitlement_purchase?.prerequisite_amount
+        ? price_rule.prerequisite_to_entitlement_purchase?.prerequisite_amount
+        : {};
+    }
+    if (discount_type === "product") {
+      response.entitled_product_ids =
+        price_rule?.entitled_product_ids?.length > 0
+          ? price_rule.entitled_product_ids
+          : [];
       response.entitled_collection_ids =
-        price_rule.entitled_collection_ids || [];
+        price_rule?.entitled_collection_ids?.length > 0
+          ? price_rule.entitled_collection_ids
+          : [];
       response.prerequisite_product_ids =
-        price_rule.prerequisite_product_ids || [];
+        price_rule?.prerequisite_product_ids?.length > 0
+          ? price_rule.prerequisite_product_ids
+          : [];
       response.prerequisite_collection_ids =
-        price_rule.prerequisite_collection_ids || [];
+        price_rule?.prerequisite_collection_ids?.length > 0
+          ? price_rule.prerequisite_collection_ids
+          : [];
     }
     if (
       discount_type === "product" &&
       price_rule.hasOwnProperty("prerequisite_to_entitlement_quantity_ratio")
     )
-      if (price_rule.prerequisite_to_entitlement_quantity_ratio) {
+      if (price_rule?.prerequisite_to_entitlement_quantity_ratio) {
         response.prerequisite_to_entitlement_quantity_ratio =
-          price_rule.prerequisite_to_entitlement_quantity_ratio;
+          price_rule?.prerequisite_to_entitlement_quantity_ratio;
       }
     if (
       price_rule.customer_selection === "prerequisite" &&
-      price_rule.prerequisite_customer_ids
+      price_rule?.prerequisite_customer_ids?.length > 0
     ) {
-      response.prerequisite_customer_ids =
-        price_rule.prerequisite_customer_ids || [];
+      response.prerequisite_customer_ids = price_rule.prerequisite_customer_ids;
+    } else {
+      response.prerequisite_customer_ids = [];
     }
     if (
       price_rule.customer_selection === "prerequisite" &&
-      price_rule.customer_segment_prerequisite_ids
+      price_rule?.customer_segment_prerequisite_ids
     ) {
       response.customer_segment_prerequisite_ids =
         price_rule.customer_segment_prerequisite_ids || [];
@@ -835,10 +895,16 @@ app.put("/api/update-price_rule/:id", async (req, res) => {
       price_rule.target_type === "shipping_line" &&
       price_rule.target_selection === "entitled"
     ) {
-      response.entitled_country_ids = price_rule.entitled_country_ids;
+      response.entitled_country_ids =
+        price_rule?.entitled_country_ids?.length > 0
+          ? price_rule.entitled_country_ids
+          : [];
     }
     if (discount_type === "order") {
-      response.entitled_product_ids = price_rule.entitled_product_ids || [];
+      response.entitled_product_ids =
+        price_rule?.entitled_product_ids?.length > 0
+          ? price_rule.entitled_product_ids
+          : [];
       response.prerequisite_shipping_price_range =
         price_rule.prerequisite_shipping_price_range || {};
       // hasExcludeShippingRatesOver=
@@ -960,7 +1026,7 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
     );
 });
 
-console.log("env", process.env.MONGO_URI);
+// console.log("env", process.env.MONGO_URI);
 mongoose
   .connect(`${process.env.MONGO_URI}`)
   .then(() => {

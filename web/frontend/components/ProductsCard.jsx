@@ -146,15 +146,13 @@ export function ProductsCard() {
   const [optionsModal, setOptionsModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [selectedDiscountId, setSelectedDiscountId] = useState(null);
+  const [discountType, setDiscountType] = useState(null);
   const [deleteLoader, setDeleteLoader] = useState(false);
 
   const columns = [
-    "Discount Code",
-    "Value Type",
-    "Value",
-    "Target Type",
-    "Target Selection",
-
+    <span style={{ fontWeight: "500", color: 'gray' }}>Title</span>,
+    <span style={{ fontWeight: "500", color: 'gray' }}>Status</span>,
+    <span style={{ fontWeight: "500", color: 'gray' }}>Type</span>,
   ];
 
   const filteredDiscounts = discounts.filter((discount) =>
@@ -183,7 +181,7 @@ export function ProductsCard() {
           console.log("Fetched collections There was an error:", error);
           return error;
         });
-
+      console.log('checkinggg....', response)
       setDiscounts(response.data);
       setfilterDiscounts(response.data);
       setPrevPage(response?.page?.pgInfo?.prevPage?.query.page_info);
@@ -203,28 +201,121 @@ export function ProductsCard() {
   }, [toastVisible]);
 
 
-  const handleOptionsModal = (id) => {
+  const handleOptionsModal = (id, _type) => {
     setOptionsModal(true);
     setSelectedDiscountId(id);
+    setDiscountType(_type)
   };
+
+
+  function getDiscountStatement(rule) {
+    // Check for shipping discounts
+    if (rule?.target_type === "shipping_line") {
+      return "Avail free shipping on $20 on an order.";
+    }
+
+    // Check for product-specific discounts
+    if (
+      rule?.entitled_product_ids?.length > 0 ||
+      rule?.entitled_variant_ids?.length > 0 ||
+      rule?.entitled_collection_ids?.length > 0
+    ) {
+      // Further classify product discounts
+      if (
+        rule?.prerequisite_to_entitlement_quantity_ratio &&
+        rule?.prerequisite_to_entitlement_quantity_ratio.prerequisite_quantity &&
+        rule?.prerequisite_to_entitlement_quantity_ratio.entitled_quantity
+      ) {
+        const valueType = rule.value_type === "percentage" ? "%" : "$";
+
+        const buyQty =
+          rule?.prerequisite_to_entitlement_quantity_ratio.prerequisite_quantity;
+        const freeQty =
+          rule?.prerequisite_to_entitlement_quantity_ratio.entitled_quantity;
+
+        let statement = `Buy ${buyQty} and get ${freeQty} free.`;
+        if (rule.value !== "-100.0") {
+          statement += ` items at ${rule.value.split("-")[1]}${valueType} off each`;
+        }
+        return statement
+      }
+
+      // Handle simple product discount
+      const value = rule.value;
+      const valueType = rule.value_type === "percentage" ? "%" : "$";
+      return `Avail ${value.split('-')[1]}${valueType} off on ${rule?.entitled_product_ids?.length || rule?.entitled_variant_ids?.length
+        } product(s).`;
+    }
+
+    // Check for order-level discounts
+    if (rule?.target_type === "line_item" && rule?.allocation_method === "across") {
+      const value = rule?.value;
+      const valueType = rule?.value_type === "percentage" ? "%" : "$";
+      return `Avail ${value.split("-")[1]}${valueType} off an order.`;
+    }
+
+    // Default case (if no specific type matches)
+    return "Unknown discount type.";
+  }
+  function getDiscountType(rule, isSubTitle = false) {
+    // Check for shipping discounts
+    if (rule.target_type === "shipping_line") {
+      return isSubTitle ? "Shipping discount" : "Free shipping";
+    }
+
+    // Check for product-specific discounts
+    if (
+      rule.entitled_product_ids?.length > 0 ||
+      rule.entitled_variant_ids?.length > 0 ||
+      rule.entitled_collection_ids?.length > 0
+    ) {
+      // Further classify product discounts
+      if (
+        rule.prerequisite_to_entitlement_quantity_ratio
+          .prerequisite_quantity &&
+        rule.prerequisite_to_entitlement_quantity_ratio.entitled_quantity
+      ) {
+        return isSubTitle ? "Product discount" : "Buy X Get Y"; // Subtype for Buy X Get Y
+      }
+
+      return isSubTitle ? "Product discount" : "Amount off Products"; // Subtype for simple product discount
+    }
+
+    // Check for order-level discounts
+    if (
+      rule.target_type === "line_item" &&
+      rule.allocation_method === "across"
+    ) {
+      return isSubTitle ? "Order discount" : "Amoun off order";
+    }
+
+    // Default case (if no specific type matches)
+    return "unknown";
+  }
+
   const rows = filterDiscounts.map((discount) => [
     <Link
+
       monochrome
       removeUnderline
       // url="https://www.example.com"
       // key="emerald-silk-gown"
-      onClick={() => handleOptionsModal(discount.priceRuleDetails?.id)}
+      onClick={() => handleOptionsModal(discount.priceRuleDetails?.id, discount.type)}
     >
-      {discount.code}
+
+      <div style={{ fontSize: '14px', fontWeight: "600" }}>{discount.code}</div>
+      <div style={{ color: 'gray', fontSize: '13px', fontWeight: '500' }}>{getDiscountStatement(discount?.priceRuleDetails)}</div>
     </Link>,
-    discount.priceRuleDetails?.value_type === "fixed_amount"
-      ? "Fixed Amount"
-      : "Percentage",
-    Math.abs(Number(discount.priceRuleDetails?.value)),
-    discount.priceRuleDetails?.target_type === "shipping_line"
-      ? "Shipping Line"
-      : "Line Item",
-    discount.priceRuleDetails?.target_selection === "all" ? "All" : "Entitled",
+    "Active",
+    <div>{getDiscountType(discount.priceRuleDetails)}
+
+      <div style={{ color: 'gray', fontSize: '13px', fontWeight: '500' }}>{getDiscountType(discount?.priceRuleDetails, true)}</div>
+
+    </div>,
+    // discount.priceRuleDetails?.target_type === "shipping_line"
+    //   ? "Shipping Line"
+    //   : "Line Item",
+    // discount.priceRuleDetails?.target_selection === "all" ? "All" : "Entitled",
   ]);
 
   const triggerPaginate = () => {
@@ -453,10 +544,6 @@ export function ProductsCard() {
                               "text",
                               "text",
                               "text",
-                              "text",
-                              "text",
-                              "text",
-                              "text",
                             ]}
                             headings={columns}
                             rows={rows}
@@ -533,6 +620,7 @@ export function ProductsCard() {
                       alignItems: "center",
                       marginTop: 10,
                       marginBottom: 10,
+                      // margin: 10,
                       borderTop: 0,
                       borderLeft: 0,
                       borderRight: 0,
@@ -549,7 +637,7 @@ export function ProductsCard() {
                     }}
                     key={discount.id}
                   >
-                    <div>
+                    <div style={{ marginLeft: 10 }}>
                       {/* Adjust width here */}
                       <Text alignment="start" variant="headingSm" as="h6">
                         {discount.name}
@@ -604,14 +692,14 @@ export function ProductsCard() {
                   <>
                     {" "}
                     {[
-                      {
-                        id: 1,
-                        name: "Edit Discount",
-                        description:
-                          "Change discount details such as name, description, and discount type.",
-                        tagValue: "Change Discount",
-                        nav: "AddDiscount",
-                      },
+                      // {
+                      //   id: 1,
+                      //   name: "Edit Discount",
+                      //   description:
+                      //     "Change discount details such as name, description, and discount type.",
+                      //   tagValue: "Change Discount",
+                      //   nav: discountType,
+                      // },
                       {
                         id: 2,
                         name: "Delete Discount",

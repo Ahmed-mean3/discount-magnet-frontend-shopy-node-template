@@ -3,7 +3,7 @@
 client_id = "38aaf4139f78d5a424df9647822e4002"
 name = "discount_app_ahmed"
 handle = "discount_app_ahmed"
-application_url = "https://washington-theatre-nitrogen-beauty.trycloudflare.com"
+application_url = "https://singer-cart-livecam-moral.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,16 +17,16 @@ scopes = "read_customers,read_discounts,read_price_rules,read_products,unauthent
 
 [auth]
 redirect_urls = [
-  "https://washington-theatre-nitrogen-beauty.trycloudflare.com/auth/callback",
-  "https://washington-theatre-nitrogen-beauty.trycloudflare.com/auth/shopify/callback",
-  "https://washington-theatre-nitrogen-beauty.trycloudflare.com/api/auth/callback"
+  "https://singer-cart-livecam-moral.trycloudflare.com/auth/callback",
+  "https://singer-cart-livecam-moral.trycloudflare.com/auth/shopify/callback",
+  "https://singer-cart-livecam-moral.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-07"
 
 [app_proxy]
-url = "https://washington-theatre-nitrogen-beauty.trycloudflare.com/myApp"
+url = "https://singer-cart-livecam-moral.trycloudflare.com/myApp"
 subpath = "proxy"
 prefix = "apps"
 
